@@ -1,0 +1,786 @@
+<title>비스듬한 삼진 나무</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --paper:   #f4f4f8;
+  --surface: #ffffff;
+  --ink:     #191a22;
+  --muted:   #63657a;
+  --faint:   #8b8da0;
+  --rule:    #dedeea;
+  --blue:    #2b3fc4;   /* 싹 */
+  --red:     #bc372c;   /* 계급 */
+  --green:   #16794f;   /* 실 */
+  --blue-w:  #e6e8fb;
+  --shadow:  0 1px 2px rgba(25,26,34,.05), 0 8px 24px -16px rgba(25,26,34,.28);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:   #131419;
+    --surface: #1b1c24;
+    --ink:     #e9e9f1;
+    --muted:   #9b9db0;
+    --faint:   #73758a;
+    --rule:    #2d2f3d;
+    --blue:    #92a6ff;
+    --red:     #ff8f80;
+    --green:   #58cf9c;
+    --blue-w:  #232741;
+    --shadow:  0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  --paper:   #131419;
+  --surface: #1b1c24;
+  --ink:     #e9e9f1;
+  --muted:   #9b9db0;
+  --faint:   #73758a;
+  --rule:    #2d2f3d;
+  --blue:    #92a6ff;
+  --red:     #ff8f80;
+  --green:   #58cf9c;
+  --blue-w:  #232741;
+  --shadow:  0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Newsreader", "Gowun Batang", Georgia, serif;
+  font-size: 17px;
+  line-height: 1.72;
+  margin: 0;
+  padding-block: 3.5rem 4rem;
+  padding-left: 20px;
+  padding-right: 20px;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap { max-width: 940px; margin: 0 auto; display: flex; flex-direction: column; gap: 3.25rem; }
+.prose { max-width: 33em; }
+p { margin: 0 0 .9em; }
+p:last-child { margin-bottom: 0; }
+a { color: var(--blue); text-decoration-thickness: .5px; text-underline-offset: 2px; }
+
+/* ── 머리 ── */
+.eyebrow {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .68rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--faint); margin: 0 0 .9rem;
+}
+h1 {
+  font-weight: 400; font-size: clamp(2.1rem, 6vw, 3.2rem); line-height: 1.12;
+  margin: 0 0 .5rem; letter-spacing: -.015em; text-wrap: balance;
+}
+.deck { font-size: 1.08rem; color: var(--muted); max-width: 32em; margin: 0; }
+.theorem {
+  margin-top: 1.9rem; padding: 1rem 1.3rem; max-width: 34em;
+  border-left: 2px solid var(--red);
+  font-style: italic; color: var(--ink); background: var(--surface);
+  border-radius: 0 3px 3px 0; box-shadow: var(--shadow);
+}
+.theorem b { font-style: normal; font-weight: 500; }
+
+/* ── 판 ── */
+figure { margin: 0; display: flex; flex-direction: column; gap: .85rem; }
+.plate-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+h2 {
+  font-weight: 400; font-size: 1.32rem; margin: 0; letter-spacing: -.01em;
+}
+h2 .num {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: .68rem; letter-spacing: .14em; color: var(--faint);
+  display: block; text-transform: uppercase; margin-bottom: .15rem;
+}
+.plate {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 4px;
+  padding: 1.1rem 1.2rem; box-shadow: var(--shadow); overflow-x: auto;
+}
+figcaption { font-size: .93rem; color: var(--muted); max-width: 40em; }
+figcaption b { color: var(--ink); font-weight: 500; }
+
+svg { display: block; width: 100%; height: auto; max-width: 100%; }
+svg text { fill: var(--ink); font-family: "Newsreader", Georgia, serif; }
+
+/* ── 조종 ── */
+.rail { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
+button, select, input[type=text] {
+  font: inherit; font-size: .9rem; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 3px; padding: .3rem .7rem; cursor: pointer;
+  transition: background .12s, border-color .12s;
+}
+input[type=text] {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .82rem;
+  cursor: text; flex: 1 1 18rem; min-width: 0; letter-spacing: .02em;
+}
+button:hover, select:hover { border-color: var(--blue); }
+button:focus-visible, select:focus-visible, input:focus-visible, .seg button:focus-visible {
+  outline: 2px solid var(--blue); outline-offset: 1px;
+}
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: .3rem .75rem; }
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--blue-w); color: var(--blue); }
+.err { color: var(--red); font-size: .88rem; min-height: 1.2em; }
+
+.transport { display: flex; align-items: center; gap: .7rem; flex-wrap: wrap; }
+.transport input[type=range] { flex: 1 1 12rem; min-width: 8rem; accent-color: var(--blue); cursor: pointer; }
+.readout {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .8rem;
+  color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.readout em { font-style: normal; color: var(--ink); }
+
+/* ── 쌓인 싹 ── */
+.stackbar { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; min-height: 2rem; }
+.stacklabel {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--faint);
+}
+.chip {
+  font-size: .9rem; min-width: 1.9rem; text-align: center;
+  padding: .08rem .42rem; border-radius: 3px;
+  border: 1px solid var(--rule); color: var(--muted); background: transparent;
+}
+.chip.live { border-color: var(--blue); color: var(--blue); }
+.chip.free { border-color: var(--blue); color: var(--surface); background: var(--blue); font-weight: 500; }
+.chip .ov { text-decoration: overline; text-decoration-thickness: .06em; }
+
+/* ── 켤레 ── */
+.conjrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
+.conj {
+  border: 1px solid var(--rule); border-radius: 4px; padding: .6rem .5rem .45rem;
+  background: none; cursor: pointer; display: flex; flex-direction: column; gap: .35rem;
+  align-items: center; text-align: center; transition: border-color .12s, background .12s;
+}
+.conj:hover { border-color: var(--blue); }
+.conj[aria-pressed="true"] { border-color: var(--blue); background: var(--blue-w); }
+.conj .nm { font-size: 1.05rem; }
+.conj .bud {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
+  color: var(--faint); letter-spacing: .04em;
+}
+.conj[aria-pressed="true"] .bud { color: var(--blue); }
+.bud .ov, .readout .ov { text-decoration: overline; text-decoration-thickness: .06em; }
+.conj svg { width: 100%; height: auto; }
+
+.legend { display: flex; gap: 1.2rem; flex-wrap: wrap; font-size: .82rem; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.swatch { width: .72rem; height: .72rem; border-radius: 2px; display: inline-block; }
+
+.args {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .8rem;
+  color: var(--muted); word-break: break-all; letter-spacing: .03em;
+}
+
+footer { border-top: 1px solid var(--rule); padding-top: 1.5rem; font-size: .92rem; color: var(--muted); }
+footer .prose { max-width: 36em; }
+
+@media (max-width: 620px) {
+  body { font-size: 16px; }
+  .conjrow { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">skew-ternary-calc &nbsp;·&nbsp; D. E. Knuth, 2013</p>
+  <h1>비스듬한 삼진 나무</h1>
+  <p class="deck">크누스가 바란 것은 “나무와 그래프를 손으로 만지작거릴 수 있는 대화식
+  프로그램”이었다. 여기 그 첫 조각이 있다 — 개미 앨리스의 산책과, 그 산책이 찾아내는 켤레 넷.</p>
+  <p class="theorem"><b>정리.</b> 고리처럼 같은 삼진 나무 2<i>n</i>+2개로 이루어진 무리마다,
+  비스듬한 삼진 나무가 정확히 넷 들어 있다.</p>
+</header>
+
+<section class="prose">
+  <p>삼진 나무의 빈자리마다 <i>싹</i>을 놓는다. 뿌리 마디와 뿌리 싹의 계급은 0이고,
+  계급이 <i>r</i>인 마디의 왼쪽·가운데·오른쪽 자식은 각각 <i>r</i>−1, <i>r</i>, <i>r</i>+1이다.
+  모든 마디의 계급이 음이 아니면 그 나무가 <i>비스듬하다</i>.</p>
+</section>
+
+<div>
+  <div class="rail">
+    <input type="text" id="args" spellcheck="false" aria-label="나무를 적는 네 글자 인자들">
+    <button id="apply">새기기</button>
+    <button id="rand">무작위</button>
+    <button id="example">크누스의 보기</button>
+  </div>
+  <p class="err" id="err"></p>
+</div>
+
+<figure>
+  <div class="plate-head">
+    <h2><span class="num">그림 하나</span>싹까지 드러낸 나무</h2>
+    <div class="seg" role="group" aria-label="세로축">
+      <button id="m-depth" aria-pressed="true">깊이로</button>
+      <button id="m-rank" aria-pressed="false">계급으로</button>
+    </div>
+  </div>
+  <div class="plate"><svg id="tree" role="img" aria-label="비스듬한 삼진 나무"></svg></div>
+  <div class="legend">
+    <span><i class="swatch" style="background:var(--red)"></i>계급</span>
+    <span><i class="swatch" style="background:var(--blue)"></i>싹 번호 — 윗줄이 그어진 것이 그 짝</span>
+    <span><i class="swatch" style="background:var(--blue)"></i>맞붙지 못한 싹</span>
+  </div>
+  <figcaption id="cap1"></figcaption>
+</figure>
+
+<figure>
+  <div class="plate-head">
+    <h2><span class="num">그림 둘</span>앨리스의 산책</h2>
+  </div>
+  <div class="plate"><svg id="chart" role="img" aria-label="앨리스의 상태표"></svg></div>
+  <div class="transport">
+    <button id="play" aria-label="재생">▶ 재생</button>
+    <button id="prev" aria-label="한 걸음 뒤로">◀</button>
+    <button id="next" aria-label="한 걸음 앞으로">▶</button>
+    <input type="range" id="slider" min="0" max="23" value="0" aria-label="걸음">
+    <span class="readout" id="readout"></span>
+  </div>
+  <div class="stackbar">
+    <span class="stacklabel">쌓인 싹</span>
+    <span id="stack"></span>
+  </div>
+  <figcaption id="cap2"></figcaption>
+</figure>
+
+<figure>
+  <div class="plate-head">
+    <h2><span class="num">그림 셋</span>켤레 넷</h2>
+  </div>
+  <div class="conjrow" id="conjrow"></div>
+  <p class="args" id="curargs"></p>
+  <figcaption>맞붙지 못한 싹 넷에 저마다 나무가 하나씩 매달린다. 그것이
+  <i>T</i>, <i>T</i><sup>+</sup>, <i>T</i><sup>++</sup>, <i>T</i><sup>+++</sup>이고,
+  <i>T</i><sup>++++</sup>&nbsp;=&nbsp;<i>T</i>다. 하나를 누르면 그 나무로 옮겨 간다 —
+  모양은 그대로이고 매다는 싹만 바뀌므로, 싹 번호는 새 뿌리에서 다시 매겨진다.</figcaption>
+</figure>
+
+<footer>
+  <div class="prose">
+    <p>셈하는 부분은 크누스의 <span class="args" style="display:inline">skew-ternary-calc.w</span>
+    가운데 「새기기」와 「상태표」 두 장을 그대로 옮긴 것이다. 무작위 나무 3510그루로
+    원본과 맞춰 보았고 한 글자도 다르지 않았다. 원본이 이어서 하는 일 — 이 나무를
+    평면 지도로 바꾸는 Jacquard–Schaeffer 대응과 Del Lungo 들의 대응 — 은 여기 없다.
+    그것을 그리려면 좌표가 필요한데, 프로그램이 내놓는 것은 꼭짓점과 변과 면의
+    목록뿐이기 때문이다.</p>
+  </div>
+</footer>
+
+</div>
+
+<script>
+"use strict";
+
+/* ══════════ 셈하기 ══════════
+   skew-ternary-calc.w의 「새기기」와 「상태표」 장을 옮긴 것. */
+
+const SENTINEL = 999, OFFSET = 2;
+
+function skew(args) {
+  const node = [], bud = [];
+  for (let i = 0; i < 256; i++) node[i] = {left:0, middle:0, right:0, parent:0, rank:0};
+  for (let i = 0; i < 512; i++) bud[i] = {parent:0, rank:0, stepno:0};
+  let buds = 0, n = 0;
+  const fail = m => { throw new Error(m); };
+
+  for (const arg of args) {
+    if (arg.length !== 4) fail("‘" + arg + "’는 네 글자가 아니다");
+    const c = arg.charCodeAt(0);
+    if (c < 64 || c > 126) fail("‘" + arg[0] + "’는 마디 이름으로 쓸 수 없다");
+    if (node[c].rank !== 0) fail("마디 ‘" + arg[0] + "’가 두 번 나온다");
+    node[c].rank = SENTINEL;
+    for (let i = 1; i <= 3; i++) {
+      if (arg[i] === "-") continue;
+      const p = arg.charCodeAt(i);
+      if (p < 64 || p > 126) fail("‘" + arg[i] + "’는 마디 이름으로 쓸 수 없다");
+      if (node[p].parent !== 0) fail("마디 ‘" + arg[i] + "’에 이미 부모가 있다");
+      node[p].parent = c;
+      if (i === 1) node[c].left = p; else if (i === 2) node[c].middle = p; else node[c].right = p;
+    }
+  }
+  n = args.length;
+
+  for (let j = 64; j <= 126; j++) {
+    if (node[j].rank !== 0 && node[j].parent === 0) {
+      if (bud[1].parent !== 0)
+        fail("뿌리가 둘이다: ‘" + String.fromCharCode(bud[1].parent) + "’와 ‘" + String.fromCharCode(j) + "’");
+      bud[1].parent = j;
+    }
+    if (node[j].parent !== 0 && node[j].rank === 0)
+      fail("마디 ‘" + String.fromCharCode(j) + "’에 대한 자료가 없다");
+  }
+  if (bud[1].parent === 0) fail("뿌리가 없다");
+
+  function setmate(p) {
+    buds += 2;
+    let q = 1 - buds, d = 0, straight = false;
+    if (bud[buds-1].parent !== 0) straight = true; else bud[buds-1].parent = p;
+    if (straight) { q = p; p = node[p].middle; d = 0; }
+    else for (;;) {
+      if (node[p].middle === q) { q = p; p = node[p].parent; continue; }
+      if (node[p].left === q) { q = p; p = node[p].right; d = 1; break; }
+      if (node[p].right === q) { q = p; p = node[p].left; d = -1; break; }
+      fail("짝이 엉켰다");
+    }
+    for (;;) {
+      if (p < 0) fail("짝이 엉켰다");
+      if (p === 0) break;
+      q = p; p = node[p].middle; d = 0;
+    }
+    if (d > 0) node[q].right = -buds; else if (d < 0) node[q].left = -buds; else node[q].middle = -buds;
+    bud[buds].parent = q;
+  }
+
+  bud[1].rank = -2;
+  setmate(bud[1].parent);
+
+  const FIELDS = [["left",-1], ["middle",0], ["right",1]];
+  (function fillbuds(p, r) {
+    if (r < 0) fail("제대로 비스듬하지 않다: 마디 ‘" + String.fromCharCode(p) + "’의 계급이 −1이다");
+    node[p].rank = r;
+    for (const [f, dr] of FIELDS) {
+      if (node[p][f] > 0) fillbuds(node[p][f], r + dr);
+      else {
+        if (node[p][f] === 0) { node[p][f] = -buds - 1; setmate(p); }
+        bud[-node[p][f]].rank = r + dr;
+      }
+    }
+  })(bud[1].parent, 0);
+  if (buds !== n + n + 2) fail("들어온 것에 고리가 있다");
+
+  const chart = [];
+  let steps = 0, stacked = 0;
+  const stack = [];
+  function budstep(b) {
+    chart[steps] = {rank: stacked - OFFSET, first: b, second: 0, match: 0};
+    bud[b].stepno = steps; steps++; stack[stacked++] = b;
+  }
+  function branch(p, q) {
+    chart[steps] = {rank: stacked - OFFSET, first: p, second: q, match: stack[stacked-1]};
+    stacked--; steps++;
+    createsteps(q);
+    chart[steps] = {rank: stacked - OFFSET, first: q, second: p, match: stack[stacked-1]};
+    stacked--; steps++;
+  }
+  function createsteps(p) {
+    for (const [f] of FIELDS) { const q = node[p][f]; if (q > 0) branch(p, q); else budstep(-q); }
+  }
+  chart[0] = {rank: -2, first: 1, second: 0, match: 0};
+  steps = 1; stack[0] = 1; stacked = OFFSET - 1; bud[1].stepno = 0;
+  createsteps(bud[1].parent);
+
+  function printfam(p, out) {
+    const kid = () => {
+      if (steps === 4*n) steps = 0;
+      const q = chart[steps].second; steps++;
+      if (q === 0) return 45;
+      printfam(q, out); steps++; return q;
+    };
+    const l = kid(), m = kid(), r = kid();
+    out.push(String.fromCharCode(p, l, m, r));
+  }
+  chart[4*n] = {rank: 0, first: bud[1].parent, second: SENTINEL, match: 0};
+  const conj = [args.slice()];
+  for (let j = 1; j < 4; j++) {
+    const out = [];
+    steps = bud[stack[j + OFFSET - 2]].stepno + 1;
+    let k = steps;
+    while (chart[k].second === 0) k++;
+    printfam(chart[k].first, out);
+    conj.push(out);
+  }
+  return {node, bud, buds, n, root: bud[1].parent, chart, free: stack.slice(0, 4), conj};
+}
+
+/* ══════════ 자리잡기 ══════════ */
+
+function layout(r, mode) {
+  const {node, bud, n, root, chart} = r;
+  const slot = {}, depth = {}, bdep = {}, nx = {};
+  let s = 0;
+  for (let i = 1; i < 4*n; i++) if (chart[i].second === 0) slot[chart[i].first] = s++;
+  (function dd(p, d) {
+    depth[p] = d;
+    for (const f of ["left","middle","right"]) { const q = node[p][f]; if (q > 0) dd(q, d+1); else bdep[-q] = d+1; }
+  })(root, 0);
+  (function xx(p) {
+    let t = 0;
+    for (const f of ["left","middle","right"]) { const q = node[p][f]; if (q > 0) { xx(q); t += nx[q]; } else t += slot[-q]; }
+    nx[p] = t/3;
+  })(root);
+
+  const DX = 34, DY = mode === "rank" ? 46 : 52;
+  const np = {}, bp = {};
+  for (const p in nx) np[p] = {x: nx[p]*DX, y: (mode === "rank" ? node[p].rank : depth[p])*DY};
+  for (const b in slot) bp[b] = {x: slot[b]*DX, y: (mode === "rank" ? bud[b].rank : bdep[b])*DY};
+  bp[1] = {x: np[root].x, y: np[root].y - DY*0.9};
+  return {np, bp, DX, DY};
+}
+
+const budLabel = b => ({pair: (b-1) >> 1, mate: ((b-1) & 1) === 1});
+const rankOf   = (r, b) => (b === 1 ? 0 : r.bud[b].rank);
+const esc      = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const sgn      = v => (v < 0 ? "−" + (-v) : String(v));
+
+/* 싹을 나타내는 작은 세모. 꼭짓점이 부모 쪽을 가리킨다. */
+function budShape(bx, by, px, py) {
+  let ux = px - bx, uy = py - by;
+  const len = Math.hypot(ux, uy) || 1;
+  ux /= len; uy /= len;
+  const ax = bx + ux*12, ay = by + uy*12;
+  const qx = -uy, qy = ux;
+  const c1 = [bx + qx*6.2, by + qy*6.2], c2 = [bx - qx*6.2, by - qy*6.2];
+  return {apex: [ax, ay], pts: [ax, ay, c1[0], c1[1], c2[0], c2[1]].map(v => v.toFixed(1)).join(" ")};
+}
+
+/* ══════════ 나무 그리기 ══════════ */
+
+function drawTree(r, mode, step) {
+  const {np, bp, DY} = layout(r, mode);
+  const cur = r.chart[step];
+  const hotBud = cur.second === 0 ? cur.first : 0;
+  const hotArc = cur.second === 0 ? null : [cur.first, cur.second];
+  const g = [];
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  const see = (x, y) => { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; };
+
+  if (mode === "rank") {
+    g.push('<line class="base" x1="-999" y1="0" x2="999" y2="0"/>');
+  }
+
+  /* 이음줄 */
+  for (const pk in np) {
+    const p = +pk, P = np[p];
+    see(P.x, P.y);
+    for (const f of ["left","middle","right"]) {
+      const q = r.node[p][f];
+      if (q > 0) {
+        const Q = np[q];
+        const hot = hotArc && ((hotArc[0] === p && hotArc[1] === q) || (hotArc[0] === q && hotArc[1] === p));
+        g.push(`<line class="arc${hot ? " hot" : ""}" x1="${P.x.toFixed(1)}" y1="${P.y.toFixed(1)}" x2="${Q.x.toFixed(1)}" y2="${Q.y.toFixed(1)}"/>`);
+      } else {
+        const b = -q, B = bp[b], sh = budShape(B.x, B.y, P.x, P.y);
+        see(B.x, B.y);
+        g.push(`<line class="twig" x1="${P.x.toFixed(1)}" y1="${P.y.toFixed(1)}" x2="${sh.apex[0].toFixed(1)}" y2="${sh.apex[1].toFixed(1)}"/>`);
+      }
+    }
+  }
+  { /* 뿌리 싹 */
+    const B = bp[1], P = np[r.root], sh = budShape(B.x, B.y, P.x, P.y);
+    see(B.x, B.y);
+    g.push(`<line class="twig" x1="${P.x.toFixed(1)}" y1="${P.y.toFixed(1)}" x2="${sh.apex[0].toFixed(1)}" y2="${sh.apex[1].toFixed(1)}"/>`);
+  }
+
+  /* 싹 */
+  const freeSet = new Set(r.free);
+  for (const bk in bp) {
+    const b = +bk, B = bp[b];
+    const par = b === 1 ? np[r.root] : np[r.bud[b].parent];
+    const sh = budShape(B.x, B.y, par.x, par.y);
+    const cls = ["bud"];
+    if (freeSet.has(b)) cls.push("free");
+    if (b === hotBud) cls.push("hot");
+    g.push(`<polygon class="${cls.join(" ")}" points="${sh.pts}"/>`);
+    const lab = budLabel(b);
+    const ly = B.y + (B.y < par.y ? -13 : 18);
+    const w = String(lab.pair).length * 6.4;
+    g.push(`<text class="budnum${b === hotBud ? " hot" : ""}" x="${B.x.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${lab.pair}</text>`);
+    if (lab.mate) g.push(`<line class="ovl" x1="${(B.x-w/2).toFixed(1)}" y1="${(ly-11).toFixed(1)}" x2="${(B.x+w/2).toFixed(1)}" y2="${(ly-11).toFixed(1)}"/>`);
+    g.push(`<text class="rank" x="${(B.x + 9).toFixed(1)}" y="${(B.y - 5).toFixed(1)}">${sgn(rankOf(r, b))}</text>`);
+    see(B.x, ly); see(B.x + 16, B.y - 12);
+  }
+
+  /* 마디 */
+  for (const pk in np) {
+    const p = +pk, P = np[p];
+    g.push(`<circle class="nodec" cx="${P.x.toFixed(1)}" cy="${P.y.toFixed(1)}" r="10"/>`);
+    g.push(`<text class="nodel" x="${P.x.toFixed(1)}" y="${(P.y + 4.2).toFixed(1)}" text-anchor="middle">${esc(String.fromCharCode(p))}</text>`);
+    g.push(`<text class="rank" x="${(P.x + 11).toFixed(1)}" y="${(P.y - 7).toFixed(1)}">${sgn(r.node[p].rank)}</text>`);
+    see(P.x + 20, P.y - 14);
+  }
+
+  /* 앨리스 */
+  let ax, ay;
+  if (hotArc) {
+    const A = np[hotArc[0]], B = np[hotArc[1]];
+    ax = A.x*0.32 + B.x*0.68; ay = A.y*0.32 + B.y*0.68;
+  } else {
+    ax = bp[hotBud].x; ay = bp[hotBud].y;
+  }
+  g.push(`<circle class="ant-halo" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="9.5"/>`);
+  g.push(`<circle class="ant" cx="${ax.toFixed(1)}" cy="${ay.toFixed(1)}" r="4.2"/>`);
+
+  const pad = 26;
+  const vb = [x0 - pad, y0 - pad - 8, (x1 - x0) + 2*pad, (y1 - y0) + 2*pad + 8];
+  const h = Math.min(vb[3], 470);
+  return `<svg id="tree" viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:${h}px"
+    preserveAspectRatio="xMidYMid meet" role="img" aria-label="비스듬한 삼진 나무">
+    <style>
+      .arc{stroke:var(--ink);stroke-width:2.4;stroke-linecap:round}
+      .arc.hot{stroke:var(--blue);stroke-width:4}
+      .twig{stroke:var(--ink);stroke-width:.9}
+      .base{stroke:var(--red);stroke-width:.9;stroke-dasharray:2 4;opacity:.65}
+      .bud{fill:var(--surface);stroke:var(--ink);stroke-width:.9}
+      .bud.free{fill:var(--blue);stroke:var(--blue)}
+      .bud.hot{stroke:var(--blue);stroke-width:2.4}
+      .nodec{fill:var(--surface);stroke:var(--ink);stroke-width:1.3}
+      .nodel{font-size:12px;font-weight:500}
+      .rank{font-size:8.5px;fill:var(--red)}
+      .budnum{font-size:12px;fill:var(--blue)}
+      .budnum.hot{font-weight:600}
+      .ovl{stroke:var(--blue);stroke-width:1}
+      .ant{fill:var(--ink)}
+      .ant-halo{fill:none;stroke:var(--blue);stroke-width:1.6;opacity:.75}
+    </style>${g.join("")}</svg>`;
+}
+
+/* ══════════ 상태표 그리기 ══════════ */
+
+function drawChart(r, step) {
+  const N = 4*r.n, ch = r.chart;
+  const st = i => (i === N ? 2 : ch[i].rank);
+  let lo = 0, hi = 0;
+  for (let i = 0; i <= N; i++) { lo = Math.min(lo, st(i)); hi = Math.max(hi, st(i)); }
+  const DX = Math.max(16, Math.min(30, 760/N)), DY = 30;
+  const X = i => i*DX, Y = v => -v*DY;
+  const g = [];
+
+  for (let v = lo; v <= hi; v++)
+    g.push(`<line class="${v === 0 ? "grid0" : "grid"}" x1="${X(0)-10}" y1="${Y(v)}" x2="${(X(N)+10).toFixed(1)}" y2="${Y(v)}"/>`
+         + `<text class="axis" x="${X(0)-16}" y="${(Y(v)+3.5).toFixed(1)}" text-anchor="end">${sgn(v)}</text>`);
+
+  /* 실: 맞붙은 호와 싹을 잇는다 */
+  for (let i = 0; i < N; i++) {
+    if (ch[i].second === 0) continue;
+    const j = r.bud[ch[i].match].stepno;
+    const y = Y(st(j)), mx = (X(i) + X(j))/2, lift = Math.min(26, 6 + (i - j)*1.1);
+    g.push(`<path class="fil" d="M ${X(j).toFixed(1)} ${y.toFixed(1)} Q ${mx.toFixed(1)} ${(y - lift).toFixed(1)} ${X(i).toFixed(1)} ${y.toFixed(1)}"/>`);
+  }
+
+  /* 계단 */
+  let d = `M ${X(0).toFixed(1)} ${Y(st(0)).toFixed(1)}`;
+  for (let i = 0; i < N; i++) d += ` L ${X(i+1).toFixed(1)} ${Y(st(i)).toFixed(1)} L ${X(i+1).toFixed(1)} ${Y(st(i+1)).toFixed(1)}`;
+  g.push(`<path class="walk" d="${d}"/>`);
+
+  /* 걸음마다의 표 */
+  const freeSet = new Set(r.free);
+  for (let i = 0; i < N; i++) {
+    const bud = ch[i].second === 0, x = X(i) + DX/2, y = Y(st(i));
+    if (bud) {
+      const b = ch[i].first, free = freeSet.has(b), lab = budLabel(b);
+      g.push(`<circle class="mk ${free ? "mkfree" : "mkbud"}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${free ? 4.4 : 2.8}"/>`);
+      if (free) {
+        const w = String(lab.pair).length * 6.4, ly = y - 10;
+        g.push(`<text class="budnum" x="${x.toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle">${lab.pair}</text>`);
+        if (lab.mate) g.push(`<line class="ovl" x1="${(x-w/2).toFixed(1)}" y1="${(ly-10).toFixed(1)}" x2="${(x+w/2).toFixed(1)}" y2="${(ly-10).toFixed(1)}"/>`);
+      }
+    } else {
+      g.push(`<circle class="mk mkarc" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.6"/>`);
+    }
+  }
+
+  /* 지금 걸음 */
+  g.push(`<rect class="now" x="${X(step).toFixed(1)}" y="${(Y(hi) - 22).toFixed(1)}" width="${DX.toFixed(1)}" height="${((hi - lo)*DY + 40).toFixed(1)}" rx="2"/>`);
+  const nx = X(step) + DX/2, ny = Y(st(step));
+  g.push(`<circle class="ant-halo" cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="8"/>`);
+  g.push(`<circle class="ant" cx="${nx.toFixed(1)}" cy="${ny.toFixed(1)}" r="3.6"/>`);
+
+  const vb = [X(0) - 34, Y(hi) - 30, X(N) + 56, (hi - lo)*DY + 52];
+  return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:${Math.min(vb[3]*1.9, 300)}px"
+    preserveAspectRatio="xMidYMid meet" role="img" aria-label="앨리스의 상태표">
+    <style>
+      .grid{stroke:var(--rule);stroke-width:.8}
+      .grid0{stroke:var(--red);stroke-width:.9;opacity:.5}
+      .axis{font-size:9px;fill:var(--faint)}
+      .walk{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round}
+      .fil{fill:none;stroke:var(--green);stroke-width:1;stroke-dasharray:3 3;opacity:.85}
+      .mkbud{fill:var(--blue)}
+      .mkarc{fill:var(--faint)}
+      .mkfree{fill:var(--blue);stroke:var(--surface);stroke-width:1.4}
+      .budnum{font-size:11px;fill:var(--blue)}
+      .ovl{stroke:var(--blue);stroke-width:1}
+      .now{fill:var(--blue);opacity:.09}
+      .ant{fill:var(--ink)}
+      .ant-halo{fill:none;stroke:var(--blue);stroke-width:1.6;opacity:.75}
+    </style>${g.join("")}</svg>`;
+}
+
+/* ══════════ 켤레 작은 그림 ══════════ */
+
+function drawMini(rr) {
+  const {np} = layout(rr, "depth");
+  /* 싹을 그리지 않으므로 싹이 차지하던 가로 자리를 걷어낸다. 차례는 그대로 두어
+     가지가 엇갈리지 않게 한다. */
+  const xs = [...new Set(Object.keys(np).map(k => np[k].x))].sort((a, b) => a - b);
+  const ix = new Map(); xs.forEach((v, i) => ix.set(v, i));
+  for (const k in np) np[k] = {x: ix.get(np[k].x)*34, y: np[k].y};
+  const g = [];
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const pk in np) {
+    const P = np[pk];
+    x0 = Math.min(x0, P.x); x1 = Math.max(x1, P.x); y0 = Math.min(y0, P.y); y1 = Math.max(y1, P.y);
+  }
+  for (const pk in np) {
+    const p = +pk, P = np[p];
+    for (const f of ["left","middle","right"]) {
+      const q = rr.node[p][f];
+      if (q > 0) g.push(`<line x1="${P.x.toFixed(1)}" y1="${P.y.toFixed(1)}" x2="${np[q].x.toFixed(1)}" y2="${np[q].y.toFixed(1)}" stroke="var(--ink)" stroke-width="2.2" stroke-linecap="round"/>`);
+    }
+  }
+  for (const pk in np) {
+    const p = +pk, P = np[p];
+    g.push(`<circle cx="${P.x.toFixed(1)}" cy="${P.y.toFixed(1)}" r="7.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.1"/>`);
+    g.push(`<text x="${P.x.toFixed(1)}" y="${(P.y + 3.2).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="var(--ink)">${esc(String.fromCharCode(p))}</text>`);
+  }
+  const pad = 14;
+  const vb = [x0 - pad, y0 - pad, (x1 - x0) + 2*pad, (y1 - y0) + 2*pad];
+  return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:130px" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g.join("")}</svg>`;
+}
+
+/* ══════════ 움직이기 ══════════ */
+
+const KNUTH = ["A-BD", "B--C", "C---", "DE-F", "E---", "F---"];
+const $ = id => document.getElementById(id);
+let R = null, MODE = "depth", STEP = 0, TIMER = null;
+
+function randomSkew(n) {
+  const names = [];
+  for (let i = 0; i < n; i++) names.push(String.fromCharCode(65 + i));
+  const kids = {};
+  names.forEach(v => kids[v] = ["-", "-", "-"]);
+  let slots = [[names[0], 0, -1], [names[0], 1, 0], [names[0], 2, 1]];
+  for (let i = 1; i < n; i++) {
+    const ok = [];
+    slots.forEach((s, ix) => { if (s[2] >= 0) ok.push(ix); });
+    const ix = ok[Math.floor(Math.random()*ok.length)];
+    const [p, s, rk] = slots.splice(ix, 1)[0];
+    kids[p][s] = names[i];
+    slots.push([names[i], 0, rk-1], [names[i], 1, rk], [names[i], 2, rk+1]);
+  }
+  const args = names.map(v => v + kids[v].join(""));
+  for (let i = args.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random()*(i+1));
+    [args[i], args[j]] = [args[j], args[i]];
+  }
+  return args;
+}
+
+function stackAt(r, step) {
+  const out = [];
+  for (let i = 0; i < step; i++) {
+    if (r.chart[i].second === 0) out.push(r.chart[i].first); else out.pop();
+  }
+  return out;
+}
+
+function chip(b, cls) {
+  const lab = budLabel(b);
+  return `<span class="chip ${cls}">${lab.mate ? `<span class="ov">${lab.pair}</span>` : lab.pair}</span>`;
+}
+
+function render() {
+  const r = R, N = 4*r.n;
+  $("tree").outerHTML = drawTree(r, MODE, STEP);
+  $("chart").outerHTML = drawChart(r, STEP).replace("<svg ", '<svg id="chart" ');
+
+  const sl = $("slider");
+  sl.max = N - 1;
+  sl.value = STEP;
+
+  const cur = r.chart[STEP];
+let kind;
+  if (cur.second === 0) {
+    const lab = budLabel(cur.first);
+    kind = `싹 ${lab.mate ? `<span class="ov">${lab.pair}</span>` : lab.pair}`;
+  } else {
+    kind = `호 ${String.fromCharCode(cur.first)}→${String.fromCharCode(cur.second)}`;
+  }
+  $("readout").innerHTML = `걸음 <em>${STEP + 1}</em>/${N} · 상태 <em>${sgn(cur.rank)}</em> · ${kind}`;
+
+  const live = stackAt(r, STEP + 1), free = new Set(r.free);
+  $("stack").innerHTML = live.length
+    ? live.map(b => chip(b, free.has(b) && STEP === N - 1 ? "free" : "live")).join("")
+    : '<span class="chip">비었다</span>';
+
+}
+
+function renderStatic() {
+  const r = R;
+  $("cap1").innerHTML = `마디 <b>${r.n}</b>개, 싹 <b>${r.buds}</b>개. 계급을 빨간색으로 적었다.
+    계급이 0인 마디마다 계급이 −1인 싹이 하나씩 있음을 눈여겨보라.
+    파랗게 칠한 싹 넷이 맞붙지 못한 것들이다.`;
+  $("cap2").innerHTML = `앨리스는 싹 0의 오른쪽에서 상태 <b>−2</b>로 떠난다. 싹을 지날 때마다 1 올리고
+    호를 지날 때마다 1 내리면, ${4*r.n}걸음 뒤 제자리에서 상태가
+    −2+${2*r.n+2}−${2*r.n-2}=<b>+2</b>가 된다. 초록 실은 맞붙은 호와 싹을 잇는다.
+    <b>계급이 k인 싹에 이를 때 앨리스의 상태는 언제나 k다</b> — 그러니 끝내 맞붙지 못한
+    싹 넷이 곧 비스듬한 나무 넷이다.`;
+
+  $("conjrow").innerHTML = r.conj.map((args, j) => {
+    const nm = j === 0 ? "T" : `T<sup>${"+".repeat(j)}</sup>`;
+    const lab = budLabel(r.free[j]);
+    const bl = lab.mate ? `<span class="ov">${lab.pair}</span>` : lab.pair;
+    return `<button class="conj" data-j="${j}" aria-pressed="${j === 0}">
+      ${drawMini(skew(args))}
+      <span class="nm"><i>${nm}</i></span>
+      <span class="bud">싹 ${bl}</span></button>`;
+  }).join("");
+  $("curargs").textContent = r.conj[0].join("  ");
+  $("args").value = r.conj[0].join(" ");
+}
+
+function load(args, keepStep) {
+  let r;
+  try { r = skew(args); }
+  catch (e) { $("err").textContent = e.message + "."; return false; }
+  $("err").textContent = "";
+  R = r;
+  STEP = keepStep ? Math.min(STEP, 4*r.n - 1) : 0;
+  renderStatic();
+  render();
+  return true;
+}
+
+function go(i) {
+  const N = 4*R.n;
+  STEP = ((i % N) + N) % N;
+  render();
+}
+
+function stop() { if (TIMER) { clearInterval(TIMER); TIMER = null; $("play").textContent = "▶ 재생"; } }
+
+$("play").onclick = () => {
+  if (TIMER) { stop(); return; }
+  $("play").textContent = "❚❚ 멈춤";
+  TIMER = setInterval(() => go(STEP + 1), 430);
+};
+$("prev").onclick = () => { stop(); go(STEP - 1); };
+$("next").onclick = () => { stop(); go(STEP + 1); };
+$("slider").oninput = e => { stop(); go(+e.target.value); };
+$("apply").onclick = () => { stop(); load($("args").value.trim().split(/\s+/).filter(Boolean), false); };
+$("args").onkeydown = e => { if (e.key === "Enter") $("apply").click(); };
+$("rand").onclick = () => { stop(); load(randomSkew(4 + Math.floor(Math.random()*7)), false); };
+$("example").onclick = () => { stop(); load(KNUTH.slice(), false); };
+$("m-depth").onclick = () => { MODE = "depth"; $("m-depth").setAttribute("aria-pressed", "true"); $("m-rank").setAttribute("aria-pressed", "false"); render(); };
+$("m-rank").onclick = () => { MODE = "rank"; $("m-rank").setAttribute("aria-pressed", "true"); $("m-depth").setAttribute("aria-pressed", "false"); render(); };
+$("conjrow").onclick = e => {
+  const b = e.target.closest(".conj");
+  if (!b) return;
+  stop();
+  load(R.conj[+b.dataset.j].slice(), false);
+};
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+  if (e.key === "ArrowRight") { stop(); go(STEP + 1); e.preventDefault(); }
+  else if (e.key === "ArrowLeft") { stop(); go(STEP - 1); e.preventDefault(); }
+  else if (e.key === " ") { $("play").click(); e.preventDefault(); }
+});
+
+load(KNUTH.slice(), false);
+</script>
