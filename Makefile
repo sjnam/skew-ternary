@@ -3,7 +3,7 @@
 #   make            # tangle + 실행 파일 + 문서 조판
 #   make tangle     # skew-ternary-calc.w -> skew-ternary-calc.go
 #   make doc        # skew-ternary-calc.pdf 조판 (한글이라 luatex)
-#   make run        # 크누스의 보기 나무로 한 번 돌려 본다
+#   make run        # 커누스의 보기 나무로 한 번 돌려 본다
 #   make app        # app/index.html 을 기본 브라우저로 연다
 #   make clean      # 생성물 삭제 (.w/.mp 원본과 app/ 은 남긴다)
 #

@@ -1,6 +1,6 @@
 % skew-ternary-calc.w에 딸린 그림들.
 %
-% 크누스가 내놓은 skew-ternary-calc.mp를 luamplib에 맞게 고친 것이다. 원본은
+% 커누스가 내놓은 skew-ternary-calc.mp를 luamplib에 맞게 고친 것이다. 원본은
 % https://www-cs-faculty.stanford.edu/~knuth/programs/skew-ternary-calc.mp
 %
 % 원본은 mpost가 파일을 처음부터 끝까지 한 번에 훑는 것을 전제로 해서, 그림들이
@@ -8,7 +8,7 @@
 % def 하나만 실행하므로 그 물림이 끊긴다. 그래서 물려받던 것을 모두 드러내어
 % 그림마다 홀로 서게 했다. 자세한 이야기는 .w 문서의 마지막 장에 있다.
 %
-% 그림 번호는 크누스의 것을 그대로 두고 이름만 붙였다. 문서에서는
+% 그림 번호는 커누스의 것을 그대로 두고 이름만 붙였다. 문서에서는
 % $$\mplibcode fig_이름; \endmplibcode$$ 로 부른다.
 
 let drawdot = draw;
