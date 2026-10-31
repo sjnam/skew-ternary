@@ -47,7 +47,13 @@ make run                          # 커누스의 보기 나무로 한 번
 ```sh
 make app                          # 기본 브라우저로 연다
 make check                        # 앱의 셈을 Go와 견주고 지도 좌표를 검사한다 (node)
+make publish                      # sjnam.github.io/skew-ternary/에 올린다
 ```
+
+`make publish`는 커밋된 `app/index.html`을 `~/workspace/sjnam.github.io`(다른 곳이면
+`SITE=…`)의 `skew-ternary/`에 복사하고, 그 저장소의 `deploy.sh`로 배포한 다음,
+공개된 페이지가 이 파일과 바이트까지 같은지 확인한다. 커밋하지 않은 고침이 있거나
+사이트 저장소가 깨끗하지 않으면 아무것도 올리지 않고 멈춘다.
 
 판이 넷이다. **싹까지 드러낸 나무**(The tree with its buds)는 커누스의 그림 1 그대로인데, 세로축을
 깊이에서 계급으로 바꿔 볼 수 있다. 그러면 빨간 0선 아래로 마디가 하나도
