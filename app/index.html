@@ -333,8 +333,9 @@ footer .prose { max-width: 36em; }
     3510그루로, 뒤의 네 장은 서로 다른 나무 8900여 그루로 원본과 맞춰 보았고 한 글자도 다르지 않았다.
     지도의 그림은 원본에 없는 것이라 따로 지었다. 프로그램이 내놓는 것은 꼭짓점과 변과
     면의 목록뿐이므로, 지도의 무게중심 세분을 짓고 바깥 면의 둘레를 원 위에 고정한 뒤
-    안쪽 마디마다 이웃의 평균 자리에 놓았다(Tutte). 교차 없는 그림이 보장되지만, 마디가
-    많아지면 안쪽 꼭짓점이 한데 몰린다.</p>
+    안쪽 마디마다 이웃의 평균 자리에 놓았다(Tutte). 그러고는 세분의 삼각형이 하나도
+    뒤집히지 않는 한에서 마디끼리 밀어 펴고 변을 곧게 폈다. 교차 없는 그림이 보장되고,
+    마디가 스물쯤까지는 볼 만하다.</p>
   </div>
 </footer>
 
@@ -677,10 +678,11 @@ function planarMaps(r) {
 /* ══════════ 지도 자리잡기 ══════════
    지도의 꼭짓점·변·면마다 마디를 하나씩 두고 깃발(꼭짓점–변–면)마다 삼각형을 하나씩
    두면 무게중심 세분이 된다. 나눌 수 없는 지도에는 고리 변이 없고 면의 테두리가 늘
-   단순한 고리이므로, 이것은 겹변 없는 삼각분할이다. ‘*3’이 든 면을 바깥으로 삼아 그
-   마디를 빼면 둘레가 꼭짓점과 변 마디가 번갈아 놓인 고리이고 현이 없는 삼각분할 원판이
-   남는다. 둘레를 원 위에 고정하고 안쪽 마디마다 이웃의 평균 자리에 놓으면(Tutte)
-   삼각형이 하나도 뒤집히지 않는다(Floater 2003) — 곧 교차 없는 그림이다.
+   단순한 고리이므로, 이것은 겹변 없는 삼각분할이다. 바깥 면의 마디를 빼면 둘레가
+   꼭짓점과 변 마디가 번갈아 놓인 고리이고 현이 없는 삼각분할 원판이 남는다. 둘레를
+   원 위에 고정하고 안쪽 마디마다 이웃의 평균 자리에 놓으면(Tutte) 삼각형이 하나도
+   뒤집히지 않는다(Floater 2003) — 곧 교차 없는 그림이다. 다만 안쪽이 몰리므로,
+   삼각형이 뒤집히지 않는 한에서 마디들을 밀어 편다.
 
    αρ가 꼭짓점 꼭지 p를 면 꼭지 rot(α p)로 보내므로, 꼭짓점 둘레에서 p와 α p 사이의
    모퉁이는 rot(α p)가 든 면에 속한다. 거꾸로 면 둘레에서 q와 α q 사이의 모퉁이는
@@ -709,9 +711,11 @@ function mapLayout(m) {
     tris.push([v, e1, f], [v, f, e2]);
   }
 
-  // 바깥 면의 둘레를 원 위에 놓는다. 면 고리는 면 안에서 보아 반시계이므로
-  // 바깥 면은 그림에서 시계 방향으로 돈다.
-  const outF = fOf[pip(ROOT, 3)], out = fNode(outF);
+  // 바깥 면은 뿌리 변 양쪽의 두 면 가운데 변이 많은 쪽이다(같으면 ‘*3’ 쪽). 변이
+  // 둘뿐인 면을 바깥에 두면 둘레가 마름모가 되어 안쪽이 납작하게 눌린다. 면 고리는
+  // 면 안에서 보아 반시계이므로 바깥 면은 그림에서 시계 방향으로 돈다.
+  const f1 = fOf[pip(ROOT, 1)], f3 = fOf[pip(ROOT, 3)];
+  const outF = faces[f1].length > faces[f3].length ? f1 : f3, out = fNode(outF);
   const x = new Float64Array(N), y = new Float64Array(N), fixed = new Uint8Array(N);
   const ring = [];
   for (const q of faces[outF]) ring.push(eIx[pipEdge(q)], vOf[rot(alpha[q])]);
@@ -719,9 +723,9 @@ function mapLayout(m) {
     const t = Math.PI/2 - 2*Math.PI*k/ring.length;
     x[u] = Math.cos(t); y[u] = Math.sin(t); fixed[u] = 1;
   });
-  fixed[out] = 1; x[out] = y[out] = NaN;
+  fixed[out] = 1;
 
-  // 안쪽 마디마다 deg·x_i − Σ x_j = 0을 가우스 소거로 푼다
+  // Tutte: 안쪽 마디마다 deg·x_i − Σ x_j = 0을 가우스 소거로 푼다
   const free = [], col = new Int32Array(N).fill(-1);
   for (let u = 0; u < N; u++) if (!fixed[u]) { col[u] = free.length; free.push(u); }
   const k = free.length;
@@ -747,6 +751,78 @@ function mapLayout(m) {
     for (let j = c + 1; j < k; j++) { sx -= A[c][j] * x[free[j]]; sy -= A[c][j] * y[free[j]]; }
     x[free[c]] = sx / A[c][c]; y[free[c]] = sy / A[c][c];
   }
+
+  // 펴기. Tutte 그림은 안쪽이 몰리므로, 마디끼리 밀어내고 세분의 이웃끼리 당기는
+  // 힘(Fruchterman–Reingold)으로 조금씩 옮긴다. 다만 한 걸음마다 그 마디에 닿은
+  // 삼각형이 모두 반시계로 남는지 보고, 하나라도 뒤집히면 걸음을 줄이거나 물린다.
+  // 둘레가 볼록하고 삼각형이 하나도 뒤집히지 않으면 그림은 여전히 교차가 없다.
+  const fan = Array.from({length: N}, () => []);
+  for (const t of tris) {
+    if (t.includes(out)) continue;
+    for (let i = 0; i < 3; i++) fan[t[i]].push([t[(i+1) % 3], t[(i+2) % 3]]);
+  }
+  const live = [];
+  for (let u = 0; u < N; u++) if (u !== out) live.push(u);
+  const K = Math.sqrt(Math.PI / live.length), ROUNDS = 400;
+  const ok = (u, px, py) => {
+    for (const [v, w] of fan[u])
+      if ((x[v] - px) * (y[w] - py) - (y[v] - py) * (x[w] - px) <= 1e-14) return false;
+    return true;
+  };
+  for (let round = 0; round < ROUNDS; round++) {
+    const temp = 0.08 * (1 - round / ROUNDS);
+    for (const u of free) {
+      let fx = 0, fy = 0;
+      for (const w of live) if (w !== u) {
+        const dx = x[u] - x[w], dy = y[u] - y[w], d2 = dx*dx + dy*dy || 1e-18;
+        fx += dx / d2 * K * K; fy += dy / d2 * K * K;
+      }
+      for (const w of adj[u]) if (w !== out) {
+        const dx = x[w] - x[u], dy = y[w] - y[u], d = Math.hypot(dx, dy);
+        fx += dx * d / K; fy += dy * d / K;
+      }
+      const f = Math.hypot(fx, fy);
+      if (!f) continue;
+      let step = Math.min(temp, f);
+      for (let tries = 0; tries < 6; tries++, step /= 2) {
+        const px = x[u] + fx / f * step, py = y[u] + fy / f * step;
+        if (ok(u, px, py)) { x[u] = px; y[u] = py; break; }
+      }
+    }
+  }
+
+  // 곧게 펴기. 밀어내기는 변 마디까지 밀어 변을 계단처럼 꺾어 놓는다. 이제 꼭짓점은
+  // 그대로 두고, 변 마디는 두 끝점의 한가운데로, 면 마디는 이웃의 평균 자리로 옮긴다.
+  // 여기서도 삼각형이 뒤집히면 걸음을 줄이므로, 겹변처럼 꼭 꺾여야 하는 변만 꺾인다.
+  // 다만 겹변 둘이 같은 한가운데로 끌려가 포개지지 않도록, 삼각형 넓이가 바닥
+  // 0.08K² 아래로 줄어드는 걸음은 받지 않는다(이미 그보다 작으면 더 줄지만 않게).
+  const floor = 0.08 * K * K;
+  const area = (u, px, py, v, w) => ((x[v] - px) * (y[w] - py) - (y[v] - py) * (x[w] - px)) / 2;
+  const roomy = (u, px, py) => {
+    for (const [v, w] of fan[u]) {
+      const now = area(u, px, py, v, w);
+      if (now <= 1e-14 || now < Math.min(floor, area(u, x[u], y[u], v, w))) return false;
+    }
+    return true;
+  };
+  const ends = {};
+  for (const e of edges) ends[eIx[e]] = [vOf[pip(e, 0)], vOf[pip(e, 2)]];
+  for (let round = 0; round < 40; round++) for (const u of free) {
+    if (u < V) continue;
+    let tx = 0, ty = 0;
+    if (u < V + E) {
+      const [a, b] = ends[u];
+      tx = (x[a] + x[b]) / 2; ty = (y[a] + y[b]) / 2;
+    } else {
+      for (const w of adj[u]) { tx += x[w]; ty += y[w]; }
+      tx /= adj[u].size; ty /= adj[u].size;
+    }
+    for (let t = 1, tries = 0; tries < 8; tries++, t /= 2) {
+      const px = x[u] + (tx - x[u]) * t, py = y[u] + (ty - y[u]) * t;
+      if (roomy(u, px, py)) { x[u] = px; y[u] = py; break; }
+    }
+  }
+  x[out] = y[out] = NaN;
   return {V, E, F, edges, vOf, fOf, eIx, fNode, outF, ring, tris, x, y};
 }
 
@@ -1076,7 +1152,7 @@ function drawMaps(r, kind) {
        빨간 줄이 꼭짓점, 초록 줄이 면이다. `
     : `켤레 넷에 Jacquard–Schaeffer 대응을 매긴 지도다. 빨간 줄이 꼭짓점 고리, 초록 줄이
        면 고리다. `) +
-    `그림에서는 <span class="rt">*<sub>3</sub></span>이 든 면을 바깥으로 두었고, 파란 화살표가
+    `그림에서는 뿌리 변 양쪽의 두 면 가운데 변이 많은 쪽을 바깥으로 두었고, 파란 화살표가
      뿌리 변이다. 목록의 줄이나 그림의 꼭짓점·면을 가리키면 서로 짝이 되는 것이 함께 밝아진다. ` +
     `<i>T</i>의 지도에서 꼭지 이름마다 아래 첨자를 하나씩 내리고 뿌리 변 <span class="rt">*</span>만은
      올리는 이름 바꾸기를 φ라 하면, ` +
