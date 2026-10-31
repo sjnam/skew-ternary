@@ -203,6 +203,29 @@ button:focus-visible, select:focus-visible, input:focus-visible, .seg button:foc
 .map sub { font-size: .7em; }
 .map .rt { color: var(--blue); }
 
+.map svg.mp { margin: .1rem 0 .3rem; overflow: visible; }
+.mp-f { fill: transparent; stroke: none; }
+.mp-f.outer { pointer-events: none; fill: none; }
+.mp-f.hl-f { fill: var(--green); fill-opacity: .16; }
+.mp-f.outer.hl-f { fill: none; stroke: var(--green); stroke-opacity: .55; stroke-width: 4; }
+.mp-e { fill: none; stroke: var(--ink); stroke-opacity: .7; stroke-width: 1.3; stroke-linejoin: round; pointer-events: none; }
+.mp-e.rt { stroke: var(--blue); stroke-opacity: 1; stroke-width: 2; }
+.mp-arrow { fill: var(--blue); }
+.mp-e.hl-v { stroke: var(--red); stroke-opacity: 1; stroke-width: 2.2; }
+.mp-e.hl-f { stroke: var(--green); stroke-opacity: 1; stroke-width: 2.2; }
+.mp-v { fill: var(--surface); stroke: var(--red); stroke-width: 1.5; cursor: default; }
+.mp-v.hl-v { fill: var(--red); }
+.mp-l {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 9px;
+  fill: var(--muted); stroke: var(--surface); stroke-width: 3; paint-order: stroke;
+  text-anchor: middle; dominant-baseline: central; pointer-events: none;
+}
+.mp-l.hid { display: none; }
+.mp-l.hl-v, .mp-l.hl-f { display: inline; fill: var(--ink); }
+.map li { cursor: default; border-radius: 2px; }
+.map li.hl-v { background: color-mix(in srgb, var(--red) 12%, transparent); }
+.map li.hl-f { background: color-mix(in srgb, var(--green) 14%, transparent); }
+
 footer { border-top: 1px solid var(--rule); padding-top: 1.5rem; font-size: .92rem; color: var(--muted); }
 footer .prose { max-width: 36em; }
 
@@ -308,8 +331,10 @@ footer .prose { max-width: 36em; }
     가운데 「새기기」와 「상태표」 두 장, 그리고 나무를 평면 지도로 바꾸는 네 장(quad-edge
     자료 구조부터 Del Lungo 들의 대응까지)을 그대로 옮긴 것이다. 앞의 두 장은 무작위 나무
     3510그루로, 뒤의 네 장은 서로 다른 나무 8900여 그루로 원본과 맞춰 보았고 한 글자도 다르지 않았다.
-    지도를 그림이 아닌 고리 목록으로 보이는 것은, 그리려면 좌표가 필요한데 프로그램이
-    내놓는 것은 꼭짓점과 변과 면의 목록뿐이기 때문이다.</p>
+    지도의 그림은 원본에 없는 것이라 따로 지었다. 프로그램이 내놓는 것은 꼭짓점과 변과
+    면의 목록뿐이므로, 지도의 무게중심 세분을 짓고 바깥 면의 둘레를 원 위에 고정한 뒤
+    안쪽 마디마다 이웃의 평균 자리에 놓았다(Tutte). 교차 없는 그림이 보장되지만, 마디가
+    많아지면 안쪽 꼭짓점이 한데 몰린다.</p>
   </div>
 </footer>
 
@@ -990,16 +1015,56 @@ function pipHTML(p) {
                     : `${String.fromCharCode(e)}<sub>${pipSub(p)}</sub>`;
 }
 
+// 지도 하나를 SVG로 그린다. 수학의 y는 위로, SVG의 y는 아래로 가므로 y를 뒤집어야
+// 반시계가 반시계로 보인다. 요소마다 data-on에 그것이 속한 꼭짓점(v…)과 면(f…)의
+// 열쇠를 적어 두면, 목록과 그림 어느 쪽에서 가리켜도 같은 것들이 함께 밝아진다.
+function drawMap(m, id) {
+  const L = mapLayout(m), {alpha} = m, S = 100;
+  const X = u => (L.x[u] * S).toFixed(2), Y = u => (-L.y[u] * S).toFixed(2);
+  const pt = u => X(u) + "," + Y(u);
+  const vOf = p => L.vOf[p], fOf = p => L.fOf[p];
+  const out = [];
+  // 면: 둘레를 꼭짓점과 변 마디로 잇는 다각형. 바깥 면은 테두리만 밝힌다.
+  m.faces.forEach((c, i) => {
+    const pts = [];
+    for (const q of c) pts.push(pt(L.eIx[pipEdge(q)]), pt(vOf(rot(alpha[q]))));
+    out.push(`<polygon class="mp-f${i === L.outF ? " outer" : ""}" data-on="f${i}" points="${pts.join(" ")}"/>`);
+  });
+  // 변: 꼭짓점 – 변 마디 – 꼭짓점의 꺾은선
+  const few = L.E <= 12;
+  for (const e of L.edges) {
+    const a = vOf(pip(e, 0)), b = vOf(pip(e, 2)), u = L.eIx[e];
+    const on = `v${a} v${b} f${fOf(pip(e, 1))} f${fOf(pip(e, 3))}`;
+    if (e === ROOT)
+      out.push(`<path class="mp-e rt" data-on="${on}" marker-mid="url(#${id})" d="M${pt(a)} L${pt(u)} L${pt(b)}"/>`);
+    else
+      out.push(`<path class="mp-e" data-on="${on}" d="M${pt(a)} L${pt(u)} L${pt(b)}"/>`);
+  }
+  for (const e of L.edges) if (e !== ROOT) {
+    const a = vOf(pip(e, 0)), b = vOf(pip(e, 2)), u = L.eIx[e];
+    const on = `v${a} v${b} f${fOf(pip(e, 1))} f${fOf(pip(e, 3))}`;
+    out.push(`<text class="mp-l${few ? "" : " hid"}" data-on="${on}" x="${X(u)}" y="${Y(u)}">${String.fromCharCode(e)}</text>`);
+  }
+  for (let v = 0; v < L.V; v++)
+    out.push(`<circle class="mp-v" data-on="v${v}" cx="${X(v)}" cy="${Y(v)}" r="3.6"/>`);
+  return `<svg class="mp" viewBox="-112 -112 224 224" role="img" aria-label="평면 지도 그림">
+    <defs><marker id="${id}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7"
+      orient="auto"><path d="M1,1 L9,5 L1,9 Z" class="mp-arrow"/></marker></defs>
+    ${out.join("")}</svg>`;
+}
+
 function drawMaps(r, kind) {
   const ms = r.maps[kind];
   const dual = [1, 2, 3].map(k => renamesTo(ms[0].alpha, ms[k].alpha, k));
   const cards = ms.map((m, j) => {
     const nm = j === 0 ? "T" : `T<sup>${"+".repeat(j)}</sup>`;
     const chk = j === 0 ? "" : ` · φ<sup>${j}</sup> ${dual[j-1] ? "✓" : "✗"}`;
-    const li = (cs, cl) => cs.map(c => `<li class="${cl}">${c.map(pipHTML).join(" ")}</li>`).join("");
+    const li = (cs, cl) => cs.map((c, i) =>
+      `<li class="${cl}" data-on="${cl}${i}">${c.map(pipHTML).join(" ")}</li>`).join("");
     return `<div class="map${j === 0 ? " cur" : ""}">
       <div class="nm"><i>${nm}</i></div>
       <div class="cnt">꼭짓점 <em>${m.v}</em> · 변 <em>${m.e}</em> · 면 <em>${m.f}</em>${chk}</div>
+      ${drawMap(m, `arr-${kind}-${j}`)}
       <h3>꼭짓점</h3><ol>${li(m.verts, "v")}</ol>
       <h3>면</h3><ol>${li(m.faces, "f")}</ol></div>`;
   });
@@ -1011,6 +1076,8 @@ function drawMaps(r, kind) {
        빨간 줄이 꼭짓점, 초록 줄이 면이다. `
     : `켤레 넷에 Jacquard–Schaeffer 대응을 매긴 지도다. 빨간 줄이 꼭짓점 고리, 초록 줄이
        면 고리다. `) +
+    `그림에서는 <span class="rt">*<sub>3</sub></span>이 든 면을 바깥으로 두었고, 파란 화살표가
+     뿌리 변이다. 목록의 줄이나 그림의 꼭짓점·면을 가리키면 서로 짝이 되는 것이 함께 밝아진다. ` +
     `<i>T</i>의 지도에서 꼭지 이름마다 아래 첨자를 하나씩 내리고 뿌리 변 <span class="rt">*</span>만은
      올리는 이름 바꾸기를 φ라 하면, ` +
     (all
@@ -1151,6 +1218,16 @@ $("rand").onclick = () => { stop(); load(randomSkew(4 + Math.floor(Math.random()
 $("example").onclick = () => { stop(); load(KNUTH.slice(), false); };
 $("m-depth").onclick = () => { MODE = "depth"; $("m-depth").setAttribute("aria-pressed", "true"); $("m-rank").setAttribute("aria-pressed", "false"); render(); };
 $("m-rank").onclick = () => { MODE = "rank"; $("m-rank").setAttribute("aria-pressed", "true"); $("m-depth").setAttribute("aria-pressed", "false"); render(); };
+function mapHover(e) {
+  const card = e.target.closest(".map");
+  document.querySelectorAll("#maprow .hl-v, #maprow .hl-f").forEach(el => el.classList.remove("hl-v", "hl-f"));
+  const t = e.type === "mouseover" && e.target.closest("[data-on]");
+  if (!card || !t) return;
+  const k = t.dataset.on.split(" ")[0];
+  card.querySelectorAll(`[data-on~="${k}"]`).forEach(el => el.classList.add("hl-" + k[0]));
+}
+$("maprow").addEventListener("mouseover", mapHover);
+$("maprow").addEventListener("mouseleave", mapHover);
 $("m-ddp").onclick = () => { MAPKIND = "ddp"; $("m-ddp").setAttribute("aria-pressed", "true"); $("m-js").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
 $("m-js").onclick = () => { MAPKIND = "js"; $("m-js").setAttribute("aria-pressed", "true"); $("m-ddp").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
 $("conjrow").onclick = e => {
