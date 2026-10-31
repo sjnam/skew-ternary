@@ -175,12 +175,40 @@ button:focus-visible, select:focus-visible, input:focus-visible, .seg button:foc
   color: var(--muted); word-break: break-all; letter-spacing: .03em;
 }
 
+/* ── 평면 지도 ── */
+.maprow { display: grid; grid-template-columns: repeat(4, 1fr); gap: .8rem; }
+.map {
+  border: 1px solid var(--rule); border-radius: 4px; padding: .6rem .7rem .7rem;
+  background: var(--surface); min-width: 0;
+}
+.map.cur { border-color: var(--blue); }
+.map .nm { font-size: 1.05rem; }
+.map .cnt {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
+  color: var(--faint); letter-spacing: .04em; margin-bottom: .45rem;
+}
+.map .cnt em { font-style: normal; color: var(--ink); }
+.map h3 {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 400;
+  font-size: .62rem; letter-spacing: .12em; color: var(--faint);
+  margin: .5rem 0 .15rem;
+}
+.map ol {
+  list-style: none; margin: 0; padding: 0;
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .76rem; line-height: 1.6;
+}
+.map li { word-break: break-word; }
+.map li.v { border-left: 2px solid var(--red); padding-left: .4rem; }
+.map li.f { border-left: 2px solid var(--green); padding-left: .4rem; }
+.map sub { font-size: .7em; }
+.map .rt { color: var(--blue); }
+
 footer { border-top: 1px solid var(--rule); padding-top: 1.5rem; font-size: .92rem; color: var(--muted); }
 footer .prose { max-width: 36em; }
 
 @media (max-width: 620px) {
   body { font-size: 16px; }
-  .conjrow { grid-template-columns: repeat(2, 1fr); }
+  .conjrow, .maprow { grid-template-columns: repeat(2, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -262,14 +290,26 @@ footer .prose { max-width: 36em; }
   모양은 그대로이고 매다는 싹만 바뀌므로, 싹 번호는 새 뿌리에서 다시 매겨진다.</figcaption>
 </figure>
 
+<figure>
+  <div class="plate-head">
+    <h2><span class="num">그림 넷</span>평면 지도</h2>
+    <div class="seg" role="group" aria-label="대응">
+      <button id="m-ddp" aria-pressed="true">Del Lungo 들</button>
+      <button id="m-js" aria-pressed="false">Jacquard–Schaeffer</button>
+    </div>
+  </div>
+  <div class="maprow" id="maprow"></div>
+  <figcaption id="cap4"></figcaption>
+</figure>
+
 <footer>
   <div class="prose">
     <p>셈하는 부분은 커누스의 <span class="args" style="display:inline">skew-ternary-calc.w</span>
-    가운데 「새기기」와 「상태표」 두 장을 그대로 옮긴 것이다. 무작위 나무 3510그루로
-    원본과 맞춰 보았고 한 글자도 다르지 않았다. 원본이 이어서 하는 일 — 이 나무를
-    평면 지도로 바꾸는 Jacquard–Schaeffer 대응과 Del Lungo 들의 대응 — 은 여기 없다.
-    그것을 그리려면 좌표가 필요한데, 프로그램이 내놓는 것은 꼭짓점과 변과 면의
-    목록뿐이기 때문이다.</p>
+    가운데 「새기기」와 「상태표」 두 장, 그리고 나무를 평면 지도로 바꾸는 네 장(quad-edge
+    자료 구조부터 Del Lungo 들의 대응까지)을 그대로 옮긴 것이다. 앞의 두 장은 무작위 나무
+    3510그루로, 뒤의 네 장은 9000그루로 원본과 맞춰 보았고 한 글자도 다르지 않았다.
+    지도를 그림이 아닌 고리 목록으로 보이는 것은, 그리려면 좌표가 필요한데 프로그램이
+    내놓는 것은 꼭짓점과 변과 면의 목록뿐이기 때문이다.</p>
   </div>
 </footer>
 
@@ -397,6 +437,216 @@ function skew(args) {
     conj.push(out);
   }
   return {node, bud, buds, n, root: bud[1].parent, chart, free: stack.slice(0, 4), conj};
+}
+
+/* ══════════ 평면 지도 ══════════
+   skew-ternary-calc.w의 「quad-edge 자료 구조」부터 「Del Lungo 들의 평면 지도」까지
+   네 장을 옮긴 것. 꼭지 pip(u,i)는 변 u(글자 코드, 뿌리 변은 ‘*’)의 i번 꼭지이고,
+   짝수 꼭지는 꼭짓점 고리에, 홀수 꼭지는 면 고리에 든다. 상태표는 first와 second
+   두 밭만 쓰므로 줄마다 Int32Array 둘로 펼쳤다. */
+
+const ROOT = 42, ROW = 256;   // ‘*’, 4*maxcodes
+const pip = (u, i) => u << 2 | i, pipEdge = p => p >> 2, pipSub = p => p & 3;
+const rot = p => p & ~3 | (p + 1) & 3, irot = p => p & ~3 | (p + 3) & 3;
+const pipName = p => String.fromCharCode(pipEdge(p)) + pipSub(p);
+
+function planarMaps(r) {
+  const {node, bud, n, chart, free} = r;
+  const alpha = new Int32Array(4*256), alphainv = new Int32Array(4*256);
+  const csF = new Int32Array(64*ROW), csS = new Int32Array(64*ROW);
+  const tmpF = new Int32Array(ROW), tmpS = new Int32Array(ROW);
+  const stk = new Int32Array(64*64);
+  let verts = 0;
+  const confusion = id => { throw new Error("이런 일은 있을 수 없다 (" + id + ")"); };
+
+  function initAlpha() {
+    verts = 0;
+    for (let k = ROOT; k <= 126; k++) {
+      if (k !== ROOT && node[k].left === 0) continue;
+      const a = pip(k, 0);
+      alpha[a] = alphainv[a] = a;
+      alpha[a+1] = alphainv[a+1] = a + 3;
+      alpha[a+2] = alphainv[a+2] = a + 2;
+      alpha[a+3] = alphainv[a+3] = a + 1;
+      verts += 2;
+    }
+    if (verts !== 2*(n+1)) confusion("initial vertex count");
+  }
+
+  function splice(p, q) {
+    if ((p & 1) + (q & 1) !== 0) confusion("attempt to splice face pips");
+    let r = alphainv[p], s = alphainv[q];
+    alphainv[p] = s; alphainv[q] = r;
+    alpha[s] = p; alpha[r] = q;
+    p = alpha[rot(p)]; q = alpha[rot(q)];   // 이제 알맞은 면들을 맞바꾼다
+    r = alphainv[p]; s = alphainv[q];
+    alphainv[p] = s; alphainv[q] = r;
+    alpha[s] = p; alpha[r] = q;
+    verts--;
+  }
+
+  // printAlpha가 찍는 차례 그대로 고리를 모은다: 같은 홀짝의 꼭지를 ‘*’부터 훑어
+  // 아직 못 본 꼭지 p를 만나면 alpha[p]에서 시작해 p로 끝나는 고리를 적는다.
+  function snapshot() {
+    const cycles = par => {
+      const out = [], seen = new Uint8Array(4*256);
+      for (let p = pip(ROOT, par); p < pip(127, 0); p += 2) {
+        if (alpha[p] === 0 || seen[p]) continue;
+        const c = [];
+        let q = p;
+        do { const r = alpha[q]; c.push(r); seen[q] = 1; q = r; } while (!seen[q]);
+        out.push(c);
+      }
+      return out;
+    };
+    const vs = cycles(0), fs = cycles(1);
+    if (vs.length !== verts) confusion("vertex count");
+    return {alpha: Array.from(alpha), verts: vs, faces: fs,
+            v: vs.length, e: n + 1, f: fs.length, c: (vs.length - (n+1) + fs.length) >> 1};
+  }
+
+  function rnbpmJS(s, r, h) {
+    let i = 0, j = 0, k = 0, l = 0, m = 0, p = 0, q = 0, t = 0, tt = 0, apip = 0, steps = 0;
+    const S = s*ROW, S1 = (s+1)*ROW;
+    // 계급 0인 첫 마디의 수 m을 알아내어 쌓는다
+    if (csS[S] !== 0) confusion("no root bud");
+    steps = 1;
+    for (m = 1; ; m++) {
+      if (csS[S+steps] !== 0) confusion("non skew");
+      steps++;
+      stk[h+m] = csS[S+steps];
+      steps++;
+      if (stk[h+m] === 0) break;
+    }
+    apip = pip(r, 2);   // 블록을 붙일 꼭지
+    while (m !== 0) {
+      m--;
+      t = stk[h+m];
+      // 다음 T* 밑에 깔린 나무 T를 chartstack[s+1]에 옮긴다
+      if (csS[S+steps] === 0) l = -1;
+      else {
+        tt = csS[S+steps];
+        if (csF[S+steps] !== t) confusion("wrong parent");
+        steps++;
+        tmpF[0] = tmpS[0] = 0;   // 허수아비 싹
+        q = 0; l = 0;
+        for (j = 1; csS[S+steps] !== t; steps++, j++) {
+          tmpF[j] = csF[S+steps]; tmpS[j] = csS[S+steps];
+          if (q === 2) k = j;          // 계급 2인 마지막 싹의 자리를 적어 둔다
+          else if (q === -1) l++;      // 계급 −1인 싹을 센다
+          if (tmpS[j] !== 0) q--; else q++;
+        }
+        if (csF[S+steps] !== tt) confusion("right bracket");
+        for (i = k; i < j; i++) { csF[S1+i-k] = tmpF[i]; csS[S1+i-k] = tmpS[i]; }
+        for (i = 0; i < k; i++) { csF[S1+i+j-k] = tmpF[i]; csS[S1+i+j-k] = tmpS[i]; }
+      }
+      steps++;
+      // 감싼 호가 제자리에 있는지 살핀다
+      if (m !== 0 && l >= 0 && (csF[S+steps] !== t || csS[S+steps] !== stk[h+m-1]))
+        confusion("arc bracketing");
+      steps++;
+      if (l < 0) p = pip(t, 1);   // 빈 나무의 지도는 꾸미지 않은 뿌리 변뿐이다
+      else {
+        if (csS[S1+2] !== 0) stk[h+m] = csF[S1+2];
+        else if (csS[S1+3] !== 0) stk[h+m] = csF[S1+3];
+        else stk[h+m] = tt;
+        rnbpmJS(s+1, t, h+m);
+        for (p = alphainv[pip(t, 3)]; l !== 0; l--) p = alphainv[p];
+      }
+      splice(irot(p), apip);   // 새 지도를 앞 조각에 이어 붙인다
+      apip = pip(t, 2);
+    }
+    splice(pip(r, 0), apip);   // 모두를 고리로 이어 붙인다
+  }
+
+  function rnbpmDDP(s, r) {
+    let c = 0, i = 0, j = 0, jj = 0, k = 0, p = 0, q = 0, rr = 0, steps = 0;
+    const S = s*ROW, S1 = (s+1)*ROW;
+    // 앞선 차례로 계급 0인 마지막 마디 c와 그 부모 p를 찾는다
+    if (csS[S] !== 0) confusion("no root bud");
+    q = -1;
+    for (steps = 1; csS[S+steps] !== SENTINEL; steps++) {
+      if (q === -1) j = steps;
+      if (csS[S+steps] === 0) q++; else q--;
+    }
+    if (q !== 2) confusion("bad rank at end");
+    c = csS[S+j-1];
+    if (c === 0) {   // c가 상태표에 담긴 나무의 뿌리다
+      if (j !== 1) confusion("parentless rank -1 bud not at beginning");
+      c = csF[S+steps]; p = 0;
+    } else p = csF[S+j-1];
+    if (csS[S+j+1] !== 0) confusion("not the last zero");
+    // c의 오른쪽 부분나무 R에서 R⁻를 chartstack[s+1]에 옮긴다
+    jj = j - 1; steps = j + 2;
+    rr = csS[S+steps];
+    if (rr !== 0) {   // rr는 비어 있지 않은 부분나무 R의 뿌리다
+      if (csF[S+steps] !== c) confusion("wrong parent");
+      steps++;
+      tmpF[0] = tmpS[0] = 0;   // 허수아비 싹
+      q = 0;
+      for (j = 1; csS[S+steps] !== c; steps++, j++) {
+        tmpF[j] = csF[S+steps]; tmpS[j] = csS[S+steps];
+        if (q === 2) k = j;
+        if (tmpS[j] !== 0) q--; else q++;
+      }
+      if (csF[S+steps] !== rr) confusion("right bracket");
+      for (i = k; i < j; i++) { csF[S1+i-k] = tmpF[i]; csS[S1+i-k] = tmpS[i]; }
+      for (i = 0; i < k; i++) { csF[S1+i+j-k] = tmpF[i]; csS[S1+i+j-k] = tmpS[i]; }
+      csS[S1+j] = SENTINEL;
+      if (csS[S1+2] !== 0) csF[S1+j] = csF[S1+2];
+      else if (csS[S1+3] !== 0) csF[S1+j] = csF[S1+3];
+      else csF[S1+j] = rr;
+    }
+    steps++;
+    if (rr !== 0) rnbpmDDP(s+1, c);   // T의 지도를 되돌아 짓는다
+    // 나무의 나머지를 chartstack[s+1]에 옮긴다
+    if (p !== 0) {
+      for (i = 0; i < jj; i++) { csF[S1+i] = csF[S+i]; csS[S1+i] = csS[S+i]; }
+      csF[S1+i] = csS[S1+i] = 0;   // c 자리의 싹
+      i++;
+      for (steps++; ; steps++, i++) {
+        csF[S1+i] = csF[S+steps]; csS[S1+i] = csS[S+steps];
+        if (csS[S1+i] === SENTINEL) break;
+      }
+      rnbpmDDP(s+1, r);   // S의 지도를 되돌아 짓는다
+    }
+    // 마법 같은 이어붙이기 셋으로 모두를 엮는다
+    if (rr === 0) {   // T̂가 비어 있다
+      splice(pip(c, 0), p !== 0 ? alpha[pip(p, 0)] : pip(r, 2));
+    } else {
+      splice(pip(c, 2), p !== 0 ? alpha[pip(p, 0)] : pip(r, 2));
+      splice(pip(c, 2), alpha[pip(c, 2)]);
+      verts += 2;   // 같은 꼭짓점의 꼭지 둘을 갈라놓았으므로
+    }
+    splice(pip(c, 2), irot(alphainv[pip(r, 3)]));
+  }
+
+  // j번째 비스듬한 나무의 상태표를 chartstack[0]에 옮기고 그 길이를 돌려준다
+  function loadChart(j) {
+    const st = bud[free[j]].stepno;
+    let k = 0;
+    for (let i = st; i < 4*n; i++, k++) { csF[k] = chart[i].first; csS[k] = chart[i].second; }
+    for (let i = 0; i < st; i++, k++) { csF[k] = chart[i].first; csS[k] = chart[i].second; }
+    return k;
+  }
+
+  const js = [], ddp = [];
+  for (let j = 0; j < 4; j++) {
+    initAlpha();
+    loadChart(j);
+    stk[0] = bud[free[j]].parent;
+    rnbpmJS(0, ROOT, 0);
+    js.push(snapshot());
+  }
+  for (let j = 0; j < 4; j++) {
+    initAlpha();
+    const k = loadChart(j);
+    csF[k] = bud[free[j]].parent;
+    csS[k] = SENTINEL;
+    rnbpmDDP(0, ROOT);
+    ddp.push(snapshot());
+  }
+  return {js, ddp};
 }
 
 /* ══════════ 자리잡기 ══════════ */
@@ -644,11 +894,66 @@ function drawMini(rr) {
   return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:130px" preserveAspectRatio="xMidYMid meet" aria-hidden="true">${g.join("")}</svg>`;
 }
 
+/* ══════════ 평면 지도 목록 ══════════
+   좌표가 없으니 Go 프로그램이 찍는 것을 그대로 보인다. 덧붙여 커누스의 짐작
+   α_k = α_0 ρ̂^k를 그 자리에서 셈해 본다. 꼭지 이름을 φ = ρ̂⁻¹로 k번 바꾸면
+   (아래 첨자를 4를 법으로 하나 내리되, 뿌리 변 ‘*’만은 올린다) α_0이 α_k가 되는지. */
+
+const phi = p => pipEdge(p) === ROOT ? rot(p) : irot(p);
+
+function renamesTo(a0, ak, k) {
+  const pw = p => { for (let i = 0; i < k; i++) p = phi(p); return p; };
+  for (let x = 0; x < a0.length; x++)
+    if (a0[x] && ak[pw(x)] !== pw(a0[x])) return false;
+  return true;
+}
+
+function pipHTML(p) {
+  const e = pipEdge(p);
+  return e === ROOT ? `<span class="rt">*<sub>${pipSub(p)}</sub></span>`
+                    : `${String.fromCharCode(e)}<sub>${pipSub(p)}</sub>`;
+}
+
+function drawMaps(r, kind) {
+  const ms = r.maps[kind];
+  const dual = [1, 2, 3].map(k => renamesTo(ms[0].alpha, ms[k].alpha, k));
+  const cards = ms.map((m, j) => {
+    const nm = j === 0 ? "T" : `T<sup>${"+".repeat(j)}</sup>`;
+    const chk = j === 0 ? "" : ` · φ<sup>${j}</sup> ${dual[j-1] ? "✓" : "✗"}`;
+    const li = (cs, cl) => cs.map(c => `<li class="${cl}">${c.map(pipHTML).join(" ")}</li>`).join("");
+    return `<div class="map${j === 0 ? " cur" : ""}">
+      <div class="nm"><i>${nm}</i></div>
+      <div class="cnt">꼭짓점 <em>${m.v}</em> · 변 <em>${m.e}</em> · 면 <em>${m.f}</em>${chk}</div>
+      <h3>꼭짓점</h3><ol>${li(m.verts, "v")}</ol>
+      <h3>면</h3><ol>${li(m.faces, "f")}</ol></div>`;
+  });
+  $("maprow").innerHTML = cards.join("");
+  const [a, b] = [ms[0], ms[1]];
+  const all = dual.every(Boolean);
+  $("cap4").innerHTML = (kind === "ddp"
+    ? `켤레 넷에 Del Lungo 들의 대응을 매긴 지도다. 고리마다 꼭지의 치환 α가 도는 차례이고,
+       빨간 줄이 꼭짓점, 초록 줄이 면이다. `
+    : `켤레 넷에 Jacquard–Schaeffer 대응을 매긴 지도다. 빨간 줄이 꼭짓점 고리, 초록 줄이
+       면 고리다. `) +
+    `<i>T</i>의 지도에서 꼭지 이름마다 아래 첨자를 하나씩 내리고 뿌리 변 <span class="rt">*</span>만은
+     올리는 이름 바꾸기를 φ라 하면, ` +
+    (all
+      ? `φ를 <i>k</i>번 한 것이 <b>그대로 <i>T</i><sup>+…+</sup>의 지도가 된다</b>. 짝수 꼭지가 홀수 꼭지로
+         가니 꼭짓점 고리가 면 고리로 바뀐다 — 넷이 번갈아 서로 <b>쌍대</b>다(꼭짓점 ${a.v}·면 ${a.f}와
+         꼭짓점 ${b.v}·면 ${b.f}). 커누스가 손으로 알아채고 이 프로그램으로 확인한 등식
+         α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>이 이것이다.`
+      : (dual.some(Boolean)
+          ? `φ를 <i>k</i>번 해서 켤레의 지도가 나오는 것은 ✓가 붙은 것뿐이다.`
+          : `φ를 몇 번 해도 켤레의 지도는 나오지 않는다(✗).`) +
+        ` 커누스가 α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>를 찾아낸 것은
+         Del Lungo 들의 대응에서였다.`);
+}
+
 /* ══════════ 움직이기 ══════════ */
 
 const KNUTH = ["A-BD", "B--C", "C---", "DE-F", "E---", "F---"];
 const $ = id => document.getElementById(id);
-let R = null, MODE = "depth", STEP = 0, TIMER = null;
+let R = null, MODE = "depth", MAPKIND = "ddp", STEP = 0, TIMER = null;
 
 function randomSkew(n) {
   const names = [];
@@ -732,12 +1037,13 @@ function renderStatic() {
       <span class="bud">싹 ${bl}</span></button>`;
   }).join("");
   $("curargs").textContent = r.conj[0].join("  ");
+  drawMaps(r, MAPKIND);
   $("args").value = r.conj[0].join(" ");
 }
 
 function load(args, keepStep) {
   let r;
-  try { r = skew(args); }
+  try { r = skew(args); r.maps = planarMaps(r); }
   catch (e) { $("err").textContent = e.message + "."; return false; }
   $("err").textContent = "";
   R = r;
@@ -769,6 +1075,8 @@ $("rand").onclick = () => { stop(); load(randomSkew(4 + Math.floor(Math.random()
 $("example").onclick = () => { stop(); load(KNUTH.slice(), false); };
 $("m-depth").onclick = () => { MODE = "depth"; $("m-depth").setAttribute("aria-pressed", "true"); $("m-rank").setAttribute("aria-pressed", "false"); render(); };
 $("m-rank").onclick = () => { MODE = "rank"; $("m-rank").setAttribute("aria-pressed", "true"); $("m-depth").setAttribute("aria-pressed", "false"); render(); };
+$("m-ddp").onclick = () => { MAPKIND = "ddp"; $("m-ddp").setAttribute("aria-pressed", "true"); $("m-js").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
+$("m-js").onclick = () => { MAPKIND = "js"; $("m-js").setAttribute("aria-pressed", "true"); $("m-ddp").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
 $("conjrow").onclick = e => {
   const b = e.target.closest(".conj");
   if (!b) return;
