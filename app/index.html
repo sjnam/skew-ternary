@@ -1,8 +1,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>비스듬한 삼진 나무</title>
+<title>Skew Ternary Trees</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
 :root {
   --paper:   #f4f4f8;
@@ -50,7 +50,7 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: "Newsreader", "Gowun Batang", Georgia, serif;
+  font-family: "Newsreader", Georgia, serif;
   font-size: 17px;
   line-height: 1.72;
   margin: 0;
@@ -190,10 +190,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, .seg button:foc
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
   color: var(--faint); letter-spacing: .04em;
 }
-.map .cnt {
-  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
-  color: var(--faint); letter-spacing: .04em; margin-bottom: .45rem;
-}
+.map .cnt { font-size: .8rem; line-height: 1.45; color: var(--faint); margin-bottom: .45rem; }
 .map .cnt em { font-style: normal; color: var(--ink); }
 .map h3 {
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 400;
@@ -249,6 +246,7 @@ footer .prose { max-width: 36em; }
 @media (max-width: 620px) {
   body { font-size: 16px; }
   .conjrow, .maprow { grid-template-columns: repeat(2, 1fr); }
+  .map .cnt { min-height: 2.9em; }   /* 두 줄로 접혀도 같은 줄 카드의 그림 높이가 맞게 */
 }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
@@ -259,60 +257,61 @@ footer .prose { max-width: 36em; }
 
 <header>
   <p class="eyebrow">skew-ternary-calc &nbsp;·&nbsp; D. E. Knuth, 2013</p>
-  <h1>비스듬한 삼진 나무</h1>
-  <p class="deck">커누스가 바란 것은 “나무와 그래프를 손으로 만지작거릴 수 있는 대화식
-  프로그램”이었다. 여기 그 첫 조각이 있다 — 개미 앨리스의 산책과, 그 산책이 찾아내는 켤레 넷.</p>
-  <p class="theorem"><b>정리.</b> 고리처럼 같은 삼진 나무 2<i>n</i>+2개로 이루어진 무리마다,
-  비스듬한 삼진 나무가 정확히 넷 들어 있다.</p>
+  <h1>Skew Ternary Trees</h1>
+  <p class="deck">Knuth apologized for having no time to give his program a better user
+  interface, and hoped someone would write an interactive “app” for playing with its trees and
+  graphs. Here is a first piece of one — Alice the ant’s walk, and the four conjugates it finds.</p>
+  <p class="theorem"><b>Theorem.</b> Every family of 2<i>n</i>+2 cyclically equivalent ternary
+  trees contains exactly four skew ternary trees.</p>
 </header>
 
 <section class="prose">
-  <p>삼진 나무의 빈자리마다 <i>싹</i>을 놓는다. 뿌리 마디와 뿌리 싹의 계급은 0이고,
-  계급이 <i>r</i>인 마디의 왼쪽·가운데·오른쪽 자식은 각각 <i>r</i>−1, <i>r</i>, <i>r</i>+1이다.
-  모든 마디의 계급이 음이 아니면 그 나무가 <i>비스듬하다</i>.</p>
+  <p>Put a <i>bud</i> in every empty slot of a ternary tree. The root node and the root bud
+  have rank 0, and the left, middle, and right children of a node of rank <i>r</i> have ranks
+  <i>r</i>−1, <i>r</i>, and <i>r</i>+1. The tree is <i>skew</i> if no node has negative rank.</p>
 </section>
 
 <div>
   <div class="rail">
-    <input type="text" id="args" spellcheck="false" aria-label="나무를 적는 네 글자 인자들">
-    <button id="apply">새기기</button>
-    <button id="rand">무작위</button>
-    <button id="example">커누스의 보기</button>
+    <input type="text" id="args" spellcheck="false" aria-label="Four-character arguments describing the tree">
+    <button id="apply">Load</button>
+    <button id="rand">Random</button>
+    <button id="example">Knuth’s example</button>
   </div>
   <p class="err" id="err"></p>
 </div>
 
 <figure>
   <div class="plate-head">
-    <h2><span class="num">그림 하나</span>싹까지 드러낸 나무</h2>
-    <div class="seg" role="group" aria-label="세로축">
-      <button id="m-depth" aria-pressed="true">깊이로</button>
-      <button id="m-rank" aria-pressed="false">계급으로</button>
+    <h2><span class="num">Figure 1</span>The tree with its buds</h2>
+    <div class="seg" role="group" aria-label="Vertical axis">
+      <button id="m-depth" aria-pressed="true">By depth</button>
+      <button id="m-rank" aria-pressed="false">By rank</button>
     </div>
   </div>
-  <div class="plate"><svg id="tree" role="img" aria-label="비스듬한 삼진 나무"></svg></div>
+  <div class="plate"><svg id="tree" role="img" aria-label="Skew ternary tree"></svg></div>
   <div class="legend">
-    <span><i class="swatch" style="background:var(--red)"></i>계급</span>
-    <span><i class="swatch" style="background:var(--blue)"></i>싹 번호 — 윗줄이 그어진 것이 그 짝</span>
-    <span><i class="swatch" style="background:var(--blue)"></i>맞붙지 못한 싹</span>
+    <span><i class="swatch" style="background:var(--red)"></i>Rank</span>
+    <span><i class="swatch" style="background:var(--blue)"></i>Bud number — its mate carries the same number with an overline</span>
+    <span><i class="swatch" style="background:var(--blue)"></i>Unmatched bud</span>
   </div>
   <figcaption id="cap1"></figcaption>
 </figure>
 
 <figure>
   <div class="plate-head">
-    <h2><span class="num">그림 둘</span>앨리스의 산책</h2>
+    <h2><span class="num">Figure 2</span>Alice’s walk</h2>
   </div>
-  <div class="plate"><svg id="chart" role="img" aria-label="앨리스의 상태표"></svg></div>
+  <div class="plate"><svg id="chart" role="img" aria-label="Alice’s state chart"></svg></div>
   <div class="transport">
-    <button id="play" aria-label="재생">▶ 재생</button>
-    <button id="prev" aria-label="한 걸음 뒤로">◀</button>
-    <button id="next" aria-label="한 걸음 앞으로">▶</button>
-    <input type="range" id="slider" min="0" max="23" value="0" aria-label="걸음">
+    <button id="play" aria-label="Play">▶ Play</button>
+    <button id="prev" aria-label="Step back">◀</button>
+    <button id="next" aria-label="Step forward">▶</button>
+    <input type="range" id="slider" min="0" max="23" value="0" aria-label="Step">
     <span class="readout" id="readout"></span>
   </div>
   <div class="stackbar">
-    <span class="stacklabel">쌓인 싹</span>
+    <span class="stacklabel">Stacked buds</span>
     <span id="stack"></span>
   </div>
   <figcaption id="cap2"></figcaption>
@@ -320,23 +319,23 @@ footer .prose { max-width: 36em; }
 
 <figure>
   <div class="plate-head">
-    <h2><span class="num">그림 셋</span>켤레 넷</h2>
+    <h2><span class="num">Figure 3</span>The four conjugates</h2>
   </div>
   <div class="conjrow" id="conjrow"></div>
   <p class="args" id="curargs"></p>
-  <figcaption>맞붙지 못한 싹 넷에 저마다 나무가 하나씩 매달린다. 그것이
-  <i>T</i>, <i>T</i><sup>+</sup>, <i>T</i><sup>++</sup>, <i>T</i><sup>+++</sup>이고,
-  <i>T</i><sup>++++</sup>&nbsp;=&nbsp;<i>T</i>다. 하나를 누르면 그 나무로 옮겨 간다 —
-  모양은 그대로이고 매다는 싹만 바뀌므로, 싹 번호는 새 뿌리에서 다시 매겨진다.</figcaption>
+  <figcaption>Hang the tree from each of the four unmatched buds in turn, and you get
+  <i>T</i>, <i>T</i><sup>+</sup>, <i>T</i><sup>++</sup>, and <i>T</i><sup>+++</sup>, with
+  <i>T</i><sup>++++</sup>&nbsp;=&nbsp;<i>T</i>. Click one to move to that tree — the shape stays
+  the same and only the bud it hangs from changes, so the buds are renumbered from the new root.</figcaption>
 </figure>
 
 <figure>
   <div class="plate-head">
-    <h2><span class="num">그림 넷</span>평면 지도</h2>
+    <h2><span class="num">Figure 4</span>Planar maps</h2>
     <div class="rail">
-      <button id="m-dual" aria-pressed="false">쌍대 겹치기</button>
-      <div class="seg" role="group" aria-label="대응">
-        <button id="m-ddp" aria-pressed="true">Del Lungo 들</button>
+      <button id="m-dual" aria-pressed="false">Overlay dual</button>
+      <div class="seg" role="group" aria-label="Correspondence">
+        <button id="m-ddp" aria-pressed="true">Del Lungo et al.</button>
         <button id="m-js" aria-pressed="false">Jacquard–Schaeffer</button>
       </div>
     </div>
@@ -347,15 +346,17 @@ footer .prose { max-width: 36em; }
 
 <footer>
   <div class="prose">
-    <p>셈하는 부분은 커누스의 <span class="args" style="display:inline">skew-ternary-calc.w</span>
-    가운데 「새기기」와 「상태표」 두 장, 그리고 나무를 평면 지도로 바꾸는 네 장(quad-edge
-    자료 구조부터 Del Lungo 들의 대응까지)을 그대로 옮긴 것이다. 서로 다른 무작위 나무
-    8900여 그루로 원본이 찍는 출력 전체와 맞춰 보았고 한 글자도 다르지 않았다.
-    지도의 그림은 원본에 없는 것이라 따로 지었다. 프로그램이 내놓는 것은 꼭짓점과 변과
-    면의 목록뿐이므로, 지도의 무게중심 세분을 짓고 바깥 면의 둘레를 원 위에 고정한 뒤
-    안쪽 마디마다 이웃의 평균 자리에 놓았다(Tutte). 그러고는 세분의 삼각형이 하나도
-    뒤집히지 않는 한에서 마디끼리 밀어 펴고 변을 곧게 폈다. 교차 없는 그림이 보장되고,
-    마디가 스물쯤까지는 볼 만하다.</p>
+    <p>The computations are a direct translation of Knuth’s
+    <span class="args" style="display:inline">skew-ternary-calc.w</span>: the chapters that parse
+    the tree and build the state chart, and the four chapters that turn a tree into a planar map
+    (from the quad-edge data structure through the correspondence of Del Lungo et al.). On more
+    than 8,900 distinct random trees they reproduce the program’s entire output character for
+    character. The drawings of the maps are not part of the original, which prints only lists of
+    vertices, edges, and faces. Here each map’s barycentric subdivision is built, the boundary of
+    the outer face is pinned to a circle, and every interior node is placed at the average of its
+    neighbors (Tutte); then the nodes are spread apart and the edges straightened, never letting a
+    triangle of the subdivision flip over. The drawings are guaranteed to be free of crossings and
+    stay readable up to about twenty nodes.</p>
   </div>
 </footer>
 
@@ -377,16 +378,16 @@ function skew(args) {
   const fail = m => { throw new Error(m); };
 
   for (const arg of args) {
-    if (arg.length !== 4) fail("‘" + arg + "’는 네 글자가 아니다");
+    if (arg.length !== 4) fail("“" + arg + "” is not four characters long");
     const c = arg.charCodeAt(0);
-    if (c < 64 || c > 126) fail("‘" + arg[0] + "’는 마디 이름으로 쓸 수 없다");
-    if (node[c].rank !== 0) fail("마디 ‘" + arg[0] + "’가 두 번 나온다");
+    if (c < 64 || c > 126) fail("“" + arg[0] + "” can’t be a node name");
+    if (node[c].rank !== 0) fail("node “" + arg[0] + "” appears twice");
     node[c].rank = SENTINEL;
     for (let i = 1; i <= 3; i++) {
       if (arg[i] === "-") continue;
       const p = arg.charCodeAt(i);
-      if (p < 64 || p > 126) fail("‘" + arg[i] + "’는 마디 이름으로 쓸 수 없다");
-      if (node[p].parent !== 0) fail("마디 ‘" + arg[i] + "’에 이미 부모가 있다");
+      if (p < 64 || p > 126) fail("“" + arg[i] + "” can’t be a node name");
+      if (node[p].parent !== 0) fail("node “" + arg[i] + "” already has a parent");
       node[p].parent = c;
       if (i === 1) node[c].left = p; else if (i === 2) node[c].middle = p; else node[c].right = p;
     }
@@ -396,13 +397,13 @@ function skew(args) {
   for (let j = 64; j <= 126; j++) {
     if (node[j].rank !== 0 && node[j].parent === 0) {
       if (bud[1].parent !== 0)
-        fail("뿌리가 둘이다: ‘" + String.fromCharCode(bud[1].parent) + "’와 ‘" + String.fromCharCode(j) + "’");
+        fail("two roots: “" + String.fromCharCode(bud[1].parent) + "” and “" + String.fromCharCode(j) + "”");
       bud[1].parent = j;
     }
     if (node[j].parent !== 0 && node[j].rank === 0)
-      fail("마디 ‘" + String.fromCharCode(j) + "’에 대한 자료가 없다");
+      fail("no data for node “" + String.fromCharCode(j) + "”");
   }
-  if (bud[1].parent === 0) fail("뿌리가 없다");
+  if (bud[1].parent === 0) fail("there is no root");
 
   function setmate(p) {
     buds += 2;
@@ -413,10 +414,10 @@ function skew(args) {
       if (node[p].middle === q) { q = p; p = node[p].parent; continue; }
       if (node[p].left === q) { q = p; p = node[p].right; d = 1; break; }
       if (node[p].right === q) { q = p; p = node[p].left; d = -1; break; }
-      fail("짝이 엉켰다");
+      fail("the mates are tangled");
     }
     for (;;) {
-      if (p < 0) fail("짝이 엉켰다");
+      if (p < 0) fail("the mates are tangled");
       if (p === 0) break;
       q = p; p = node[p].middle; d = 0;
     }
@@ -429,7 +430,7 @@ function skew(args) {
 
   const FIELDS = [["left",-1], ["middle",0], ["right",1]];
   (function fillbuds(p, r) {
-    if (r < 0) fail("제대로 비스듬하지 않다: 마디 ‘" + String.fromCharCode(p) + "’의 계급이 −1이다");
+    if (r < 0) fail("not skew: node “" + String.fromCharCode(p) + "” has rank −1");
     node[p].rank = r;
     for (const [f, dr] of FIELDS) {
       if (node[p][f] > 0) fillbuds(node[p][f], r + dr);
@@ -439,7 +440,7 @@ function skew(args) {
       }
     }
   })(bud[1].parent, 0);
-  if (buds !== n + n + 2) fail("들어온 것에 고리가 있다");
+  if (buds !== n + n + 2) fail("the input contains a cycle");
 
   const chart = [];
   let steps = 0, stacked = 0;
@@ -503,7 +504,7 @@ function planarMaps(r) {
   const tmpF = new Int32Array(ROW), tmpS = new Int32Array(ROW);
   const stk = new Int32Array(64*64);
   let verts = 0;
-  const confusion = id => { throw new Error("이런 일은 있을 수 없다 (" + id + ")"); };
+  const confusion = id => { throw new Error("This can’t happen (" + id + ")"); };
 
   function initAlpha() {
     verts = 0;
@@ -968,7 +969,7 @@ function drawTree(r, mode, step) {
   const vb = [x0 - pad, y0 - pad - 8, (x1 - x0) + 2*pad, (y1 - y0) + 2*pad + 8];
   const h = Math.min(vb[3], 470);
   return `<svg id="tree" viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:${h}px"
-    preserveAspectRatio="xMidYMid meet" role="img" aria-label="비스듬한 삼진 나무">
+    preserveAspectRatio="xMidYMid meet" role="img" aria-label="Skew ternary tree">
     <style>
       .arc{stroke:var(--ink);stroke-width:2.4;stroke-linecap:round}
       .arc.hot{stroke:var(--blue);stroke-width:4}
@@ -1041,7 +1042,7 @@ function drawChart(r, step) {
 
   const vb = [X(0) - 34, Y(hi) - 30, X(N) + 56, (hi - lo)*DY + 52];
   return `<svg viewBox="${vb.map(v => v.toFixed(1)).join(" ")}" style="max-height:${Math.min(vb[3]*1.9, 300)}px"
-    preserveAspectRatio="xMidYMid meet" role="img" aria-label="앨리스의 상태표">
+    preserveAspectRatio="xMidYMid meet" role="img" aria-label="Alice’s state chart">
     <style>
       .grid{stroke:var(--rule);stroke-width:.8}
       .grid0{stroke:var(--red);stroke-width:.9;opacity:.5}
@@ -1161,7 +1162,7 @@ function drawMap(m, id) {
   for (let v = 0; v < L.V; v++)
     out.push(`<circle class="mp-v" data-on="v${v}" cx="${X(v)}" cy="${Y(v)}" r="3.6"/>`);
   out.push(`<g class="mp-dual">${dual.join("")}</g>`);
-  return `<svg class="mp" viewBox="-124 -124 248 248" role="img" aria-label="평면 지도 그림">
+  return `<svg class="mp" viewBox="-124 -124 248 248" role="img" aria-label="Planar map">
     <defs><marker id="${id}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7"
       orient="auto"><path d="M1,1 L9,5 L1,9 Z" class="mp-arrow"/></marker></defs>
     ${out.join("")}</svg>`;
@@ -1177,37 +1178,40 @@ function drawMaps(r, kind) {
       `<li class="${cl}" data-on="${cl}${i}">${c.map(pipHTML).join(" ")}</li>`).join("");
     return `<div class="map${j === 0 ? " cur" : ""}">
       <div class="nm"><i>${nm}</i>${chk}</div>
-      <div class="cnt">꼭짓점 <em>${m.v}</em> · 변 <em>${m.e}</em> · 면 <em>${m.f}</em></div>
+      <div class="cnt"><em>${m.v}</em> vertices · <em>${m.e}</em> edges · <em>${m.f}</em> faces</div>
       ${drawMap(m, `arr-${kind}-${j}`)}
-      <h3>꼭짓점</h3><ol>${li(m.verts, "v")}</ol>
-      <h3>면</h3><ol>${li(m.faces, "f")}</ol></div>`;
+      <h3>VERTICES</h3><ol>${li(m.verts, "v")}</ol>
+      <h3>FACES</h3><ol>${li(m.faces, "f")}</ol></div>`;
   });
   $("maprow").innerHTML = cards.join("");
   const [a, b] = [ms[0], ms[1]];
   const all = dual.every(Boolean);
   $("cap4").innerHTML = (kind === "ddp"
-    ? `켤레 넷에 Del Lungo 들의 대응을 매긴 지도다. 고리마다 꼭지의 치환 α가 도는 차례이고,
-       빨간 줄이 꼭짓점, 초록 줄이 면이다. `
-    : `켤레 넷에 Jacquard–Schaeffer 대응을 매긴 지도다. 빨간 줄이 꼭짓점 고리, 초록 줄이
-       면 고리다. `) +
-    `그림에서는 뿌리 변 양쪽의 두 면 가운데 변이 많은 쪽을 바깥으로 두었고, 파란 화살표가
-     뿌리 변이다. 목록의 줄이나 그림의 꼭짓점·면을 가리키면 서로 짝이 되는 것이 함께 밝아진다.
-     ‘쌍대 겹치기’의 초록 네모는 면마다 하나씩 둔 쌍대의 꼭짓점이고, 둘레 밖으로 뻗은 점선은
-     바깥 면의 쌍대 꼭짓점(무한히 먼 곳)으로 가는 변이다. ` +
-    `<i>T</i>의 지도에서 꼭지 이름마다 아래 첨자를 하나씩 내리고 뿌리 변 <span class="rt">*</span>만은
-     올리는 이름 바꾸기를 φ라 하면, ` +
+    ? `The maps that the correspondence of Del Lungo et al. assigns to the four conjugates. Each
+       cycle lists pips in the order the permutation α visits them; red bars are vertices, green
+       bars are faces. `
+    : `The maps that the Jacquard–Schaeffer correspondence assigns to the four conjugates. Red
+       bars are vertex cycles, green bars are face cycles. `) +
+    `In the drawings the outer face is whichever of the two faces beside the root edge has more
+     edges, and the blue arrow is the root edge. Point at a row of a list, or at a vertex or face
+     of a drawing, and its counterparts light up together. With ‘Overlay dual’ on, each green
+     square is the dual vertex of a face, and the dotted stubs leaving the boundary are edges to
+     the dual vertex of the outer face, which lies at infinity. ` +
+    `Let φ be the renaming that lowers the subscript of every pip in <i>T</i>’s map by one, except
+     that it raises the subscripts of the root edge <span class="rt">*</span>. ` +
     (all
-      ? `φ를 <i>k</i>번 한 것이 <b>그대로 <i>T</i><sup>+…+</sup>의 지도가 된다</b>. 짝수 꼭지가 홀수 꼭지로
-         가니 꼭짓점 고리가 면 고리로 바뀐다 — 넷이 번갈아 서로 <b>쌍대</b>다(꼭짓점 ${a.v}·면 ${a.f}와
-         꼭짓점 ${b.v}·면 ${b.f}). 커누스가 손으로 알아채고 이 프로그램으로 확인한 등식
-         α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>이 이것이다.
-         ‘쌍대 겹치기’를 켜면 카드마다 초록 점선으로 쌍대가 겹쳐지는데, 그것이 바로
-         다음 켤레의 지도다.`
+      ? `Then applying φ <i>k</i> times <b>turns it exactly into the map of <i>T</i><sup>+…+</sup></b>.
+         Since even pips become odd pips, vertex cycles become face cycles — the four maps are
+         alternately <b>dual</b> to each other (${a.v} vertices and ${a.f} faces, then ${b.v}
+         vertices and ${b.f} faces). This is the identity
+         α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup> that Knuth noticed by
+         hand and confirmed with this program. With ‘Overlay dual’ on, the green dotted dual on each
+         card is precisely the map of the next conjugate.`
       : (dual.some(Boolean)
-          ? `φ를 <i>k</i>번 해서 켤레의 지도가 나오는 것은 ✓가 붙은 것뿐이다.`
-          : `φ를 몇 번 해도 켤레의 지도는 나오지 않는다(✗).`) +
-        ` 커누스가 α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>를 찾아낸 것은
-         Del Lungo 들의 대응에서였다.`);
+          ? `Only the conjugates marked ✓ arise from <i>T</i>’s map by applying φ <i>k</i> times.`
+          : `No number of applications of φ yields the map of another conjugate (✗).`) +
+        ` Knuth found α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup> for the
+         correspondence of Del Lungo et al.`);
 }
 
 /* ══════════ 움직이기 ══════════ */
@@ -1264,29 +1268,29 @@ function render() {
 let kind;
   if (cur.second === 0) {
     const lab = budLabel(cur.first);
-    kind = `싹 ${lab.mate ? `<span class="ov">${lab.pair}</span>` : lab.pair}`;
+    kind = `bud ${lab.mate ? `<span class="ov">${lab.pair}</span>` : lab.pair}`;
   } else {
-    kind = `호 ${String.fromCharCode(cur.first)}→${String.fromCharCode(cur.second)}`;
+    kind = `arc ${String.fromCharCode(cur.first)}→${String.fromCharCode(cur.second)}`;
   }
-  $("readout").innerHTML = `걸음 <em>${STEP + 1}</em>/${N} · 상태 <em>${sgn(cur.rank)}</em> · ${kind}`;
+  $("readout").innerHTML = `step <em>${STEP + 1}</em>/${N} · state <em>${sgn(cur.rank)}</em> · ${kind}`;
 
   const live = stackAt(r, STEP + 1), free = new Set(r.free);
   $("stack").innerHTML = live.length
     ? live.map(b => chip(b, free.has(b) && STEP === N - 1 ? "free" : "live")).join("")
-    : '<span class="chip">비었다</span>';
+    : '<span class="chip">empty</span>';
 
 }
 
 function renderStatic() {
   const r = R;
-  $("cap1").innerHTML = `마디 <b>${r.n}</b>개, 싹 <b>${r.buds}</b>개. 계급을 빨간색으로 적었다.
-    계급이 0인 마디마다 계급이 −1인 싹이 하나씩 있음을 눈여겨보라.
-    파랗게 칠한 싹 넷이 맞붙지 못한 것들이다.`;
-  $("cap2").innerHTML = `앨리스는 싹 0의 오른쪽에서 상태 <b>−2</b>로 떠난다. 싹을 지날 때마다 1 올리고
-    호를 지날 때마다 1 내리면, ${4*r.n}걸음 뒤 제자리에서 상태가
-    −2+${2*r.n+2}−${2*r.n-2}=<b>+2</b>가 된다. 초록 실은 맞붙은 호와 싹을 잇는다.
-    <b>계급이 k인 싹에 이를 때 앨리스의 상태는 언제나 k다</b> — 그러니 끝내 맞붙지 못한
-    싹 넷이 곧 비스듬한 나무 넷이다.`;
+  $("cap1").innerHTML = `<b>${r.n}</b> nodes, <b>${r.buds}</b> buds. Ranks are shown in red.
+    Notice that for every node of rank 0 there is one bud of rank −1.
+    The four buds filled in blue are the unmatched ones.`;
+  $("cap2").innerHTML = `Alice starts just to the right of bud 0 in state <b>−2</b>. Her state goes
+    up by 1 at every bud and down by 1 at every arc, so after ${4*r.n} steps she is back where she
+    began in state −2+${2*r.n+2}−${2*r.n-2}=<b>+2</b>. The green threads join each arc to the bud
+    it matches. <b>Whenever Alice reaches a bud of rank k, her state is k</b> — so the four buds
+    that are never matched give exactly the four skew trees.`;
 
   $("conjrow").innerHTML = r.conj.map((args, j) => {
     const nm = j === 0 ? "T" : `T<sup>${"+".repeat(j)}</sup>`;
@@ -1295,7 +1299,7 @@ function renderStatic() {
     return `<button class="conj" data-j="${j}" aria-pressed="${j === 0}">
       ${drawMini(skew(args))}
       <span class="nm"><i>${nm}</i></span>
-      <span class="bud">싹 ${bl}</span></button>`;
+      <span class="bud">bud ${bl}</span></button>`;
   }).join("");
   $("curargs").textContent = r.conj[0].join("  ");
   drawMaps(r, MAPKIND);
@@ -1320,11 +1324,11 @@ function go(i) {
   render();
 }
 
-function stop() { if (TIMER) { clearInterval(TIMER); TIMER = null; $("play").textContent = "▶ 재생"; } }
+function stop() { if (TIMER) { clearInterval(TIMER); TIMER = null; $("play").textContent = "▶ Play"; } }
 
 $("play").onclick = () => {
   if (TIMER) { stop(); return; }
-  $("play").textContent = "❚❚ 멈춤";
+  $("play").textContent = "❚❚ Pause";
   TIMER = setInterval(() => go(STEP + 1), 430);
 };
 $("prev").onclick = () => { stop(); go(STEP - 1); };
