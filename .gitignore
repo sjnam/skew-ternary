@@ -1,0 +1,9 @@
+# make가 만드는 것들
+skew-ternary-calc
+*.go
+*.tex
+*.pdf
+*.log
+*.toc
+*.idx
+*.scn

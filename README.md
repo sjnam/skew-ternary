@@ -18,6 +18,11 @@ Del Lungo 들의 대응이고, 둘 다 Guibas–Stolfi의 quad-edge 구조 위�
 것, 그리고 Schaeffer에게 물었더니 제 1998년 학위논문에 답이 있더라는 이야기 —
 도 그대로 옮겼다.
 
+대화식 페이지는 <https://sjnam.github.io/skew-ternary/>에 올려 두었다(아래
+「손으로 만지작거리기」). 처음에는 [gweb-examples](https://github.com/sjnam/gweb-examples)의
+한 디렉터리였는데, 페이지와 검사 스크립트가 붙으며 규모가 커져 2026년 11월에 따로
+떼어 냈다. 그 디렉터리를 건드린 커밋들은 그대로 옮겨 왔다.
+
 ## 돌려 보기
 
 ```sh
