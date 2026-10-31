@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>비스듬한 삼진 나무</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,300;1,6..72,400&family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -182,7 +184,12 @@ button:focus-visible, select:focus-visible, input:focus-visible, .seg button:foc
   background: var(--surface); min-width: 0;
 }
 .map.cur { border-color: var(--blue); }
-.map .nm { font-size: 1.05rem; }
+.map .nm { font-size: 1.05rem; display: flex; align-items: baseline; justify-content: space-between; }
+.map .nm sup, .map .phi sup { line-height: 0; }
+.map .phi {
+  font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
+  color: var(--faint); letter-spacing: .04em;
+}
 .map .cnt {
   font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .68rem;
   color: var(--faint); letter-spacing: .04em; margin-bottom: .45rem;
@@ -1165,12 +1172,12 @@ function drawMaps(r, kind) {
   const dual = [1, 2, 3].map(k => renamesTo(ms[0].alpha, ms[k].alpha, k));
   const cards = ms.map((m, j) => {
     const nm = j === 0 ? "T" : `T<sup>${"+".repeat(j)}</sup>`;
-    const chk = j === 0 ? "" : ` · φ<sup>${j}</sup> ${dual[j-1] ? "✓" : "✗"}`;
+    const chk = j === 0 ? "" : `<span class="phi">φ<sup>${j}</sup> ${dual[j-1] ? "✓" : "✗"}</span>`;
     const li = (cs, cl) => cs.map((c, i) =>
       `<li class="${cl}" data-on="${cl}${i}">${c.map(pipHTML).join(" ")}</li>`).join("");
     return `<div class="map${j === 0 ? " cur" : ""}">
-      <div class="nm"><i>${nm}</i></div>
-      <div class="cnt">꼭짓점 <em>${m.v}</em> · 변 <em>${m.e}</em> · 면 <em>${m.f}</em>${chk}</div>
+      <div class="nm"><i>${nm}</i>${chk}</div>
+      <div class="cnt">꼭짓점 <em>${m.v}</em> · 변 <em>${m.e}</em> · 면 <em>${m.f}</em></div>
       ${drawMap(m, `arr-${kind}-${j}`)}
       <h3>꼭짓점</h3><ol>${li(m.verts, "v")}</ol>
       <h3>면</h3><ol>${li(m.faces, "f")}</ol></div>`;
