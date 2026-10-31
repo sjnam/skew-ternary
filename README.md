@@ -112,6 +112,8 @@ Tutte 그림은 안쪽이 몰린다. 그래서 거기서 출발해, 마디끼리
 원본은 [skew-ternary-calc.w](skew-ternary-calc.w) 하나다. 그림 예순여덟 장은
 [skew-ternary-calc.mp](skew-ternary-calc.mp)에 `fig_...`라는 이름으로 들어
 있고, 조판하는 동안 luamplib이 직접 그린다. 나머지는 전부 `make`가 만든다.
+조판한 문서 [skew-ternary-calc.pdf](skew-ternary-calc.pdf)만은 바로 읽을 수
+있도록 저장소에 함께 둔다.
 
 옮기며 손댄 곳은 다섯이고 모두 언어에서 왔다 — 매크로가 함수로, `root` 별명이
 없어 `inputbud[1].parent`를 직접, 돌리기 ρ의 비트 재주를 뜻이 드러나는 꼴로,
@@ -120,6 +122,6 @@ Tutte 그림은 안쪽이 몰린다. 그래서 거기서 출발해, 마디끼리
 나무, 나무가 아닐 수도 있는 무작위 인자 꾸러미, 잘못된 인자로 부르는 모든 길.
 
 ```sh
-make doc                          # skew-ternary-calc.pdf — 47쪽, 그림 68장
+make doc                          # skew-ternary-calc.pdf — 48쪽, 그림 68장
 make clean
 ```
