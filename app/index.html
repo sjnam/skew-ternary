@@ -649,6 +649,82 @@ function planarMaps(r) {
   return {js, ddp};
 }
 
+/* ══════════ 지도 자리잡기 ══════════
+   지도의 꼭짓점·변·면마다 마디를 하나씩 두고 깃발(꼭짓점–변–면)마다 삼각형을 하나씩
+   두면 무게중심 세분이 된다. 나눌 수 없는 지도에는 고리 변이 없고 면의 테두리가 늘
+   단순한 고리이므로, 이것은 겹변 없는 삼각분할이다. ‘*3’이 든 면을 바깥으로 삼아 그
+   마디를 빼면 둘레가 꼭짓점과 변 마디가 번갈아 놓인 고리이고 현이 없는 삼각분할 원판이
+   남는다. 둘레를 원 위에 고정하고 안쪽 마디마다 이웃의 평균 자리에 놓으면(Tutte)
+   삼각형이 하나도 뒤집히지 않는다(Floater 2003) — 곧 교차 없는 그림이다.
+
+   αρ가 꼭짓점 꼭지 p를 면 꼭지 rot(α p)로 보내므로, 꼭짓점 둘레에서 p와 α p 사이의
+   모퉁이는 rot(α p)가 든 면에 속한다. 거꾸로 면 둘레에서 q와 α q 사이의 모퉁이는
+   rot(α q)가 든 꼭짓점에 속한다. 모퉁이마다 삼각형 둘 (v, p의 변, 면)과 (v, 면,
+   α p의 변)이 반시계로 놓이니, 그림이 옳으면 넓이가 모두 양수다. */
+
+function mapLayout(m) {
+  const {alpha, verts, faces} = m;
+  const V = verts.length, F = faces.length;
+  const vOf = {}, fOf = {}, eIx = {}, edges = [];
+  verts.forEach((c, i) => c.forEach(p => {
+    vOf[p] = i;
+    if (!(pipEdge(p) in eIx)) { eIx[pipEdge(p)] = V + edges.length; edges.push(pipEdge(p)); }
+  }));
+  faces.forEach((c, i) => c.forEach(p => fOf[p] = i));
+  const E = edges.length, N = V + E + F, fNode = i => V + E + i;
+
+  // 세분의 이웃과 삼각형
+  const adj = Array.from({length: N}, () => new Set());
+  const link = (a, b) => { adj[a].add(b); adj[b].add(a); };
+  const tris = [];
+  for (const c of verts) for (const p of c) {
+    const v = vOf[p], f = fNode(fOf[rot(alpha[p])]);
+    const e1 = eIx[pipEdge(p)], e2 = eIx[pipEdge(alpha[p])];
+    link(v, e1); link(v, f); link(e1, f); link(e2, f);
+    tris.push([v, e1, f], [v, f, e2]);
+  }
+
+  // 바깥 면의 둘레를 원 위에 놓는다. 면 고리는 면 안에서 보아 반시계이므로
+  // 바깥 면은 그림에서 시계 방향으로 돈다.
+  const outF = fOf[pip(ROOT, 3)], out = fNode(outF);
+  const x = new Float64Array(N), y = new Float64Array(N), fixed = new Uint8Array(N);
+  const ring = [];
+  for (const q of faces[outF]) ring.push(eIx[pipEdge(q)], vOf[rot(alpha[q])]);
+  ring.forEach((u, k) => {
+    const t = Math.PI/2 - 2*Math.PI*k/ring.length;
+    x[u] = Math.cos(t); y[u] = Math.sin(t); fixed[u] = 1;
+  });
+  fixed[out] = 1; x[out] = y[out] = NaN;
+
+  // 안쪽 마디마다 deg·x_i − Σ x_j = 0을 가우스 소거로 푼다
+  const free = [], col = new Int32Array(N).fill(-1);
+  for (let u = 0; u < N; u++) if (!fixed[u]) { col[u] = free.length; free.push(u); }
+  const k = free.length;
+  const A = free.map(() => new Float64Array(k + 2));
+  free.forEach((u, i) => {
+    A[i][i] = adj[u].size;
+    for (const w of adj[u]) {
+      if (fixed[w]) { A[i][k] += x[w]; A[i][k+1] += y[w]; }
+      else A[i][col[w]] -= 1;
+    }
+  });
+  for (let c = 0; c < k; c++) {
+    let piv = c;
+    for (let r = c + 1; r < k; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+    [A[c], A[piv]] = [A[piv], A[c]];
+    for (let r = c + 1; r < k; r++) {
+      const f = A[r][c] / A[c][c];
+      if (f) for (let j = c; j < k + 2; j++) A[r][j] -= f * A[c][j];
+    }
+  }
+  for (let c = k - 1; c >= 0; c--) {
+    let sx = A[c][k], sy = A[c][k+1];
+    for (let j = c + 1; j < k; j++) { sx -= A[c][j] * x[free[j]]; sy -= A[c][j] * y[free[j]]; }
+    x[free[c]] = sx / A[c][c]; y[free[c]] = sy / A[c][c];
+  }
+  return {V, E, F, edges, vOf, fOf, eIx, fNode, outF, ring, tris, x, y};
+}
+
 /* ══════════ 자리잡기 ══════════ */
 
 function layout(r, mode) {
