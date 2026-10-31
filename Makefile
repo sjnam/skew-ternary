@@ -5,6 +5,7 @@
 #   make doc        # skew-ternary-calc.pdf 조판 (한글이라 luatex)
 #   make run        # 커누스의 보기 나무로 한 번 돌려 본다
 #   make app        # app/index.html 을 기본 브라우저로 연다
+#   make check      # 앱의 셈을 Go 프로그램과 견주고 지도 좌표를 검사한다 (node)
 #   make clean      # 생성물 삭제 (.w/.mp 원본과 app/ 은 남긴다)
 #
 # 그림 예순여덟 장은 skew-ternary-calc.mp 에 fig_... 라는 이름으로 들어 있고,
@@ -17,7 +18,7 @@ LUATEX  ?= luatex
 
 NAME := skew-ternary-calc
 
-.PHONY: all tangle doc run app clean
+.PHONY: all tangle doc run app check clean
 .DEFAULT_GOAL := all
 
 all: $(NAME) doc
@@ -40,6 +41,10 @@ run: $(NAME)
 
 app:
 	open app/index.html
+
+check: $(NAME)
+	node app/test/go-compare.js 3000
+	node app/test/layout-check.js 1000
 
 clean:
 	rm -f $(NAME) $(NAME).go
