@@ -222,6 +222,16 @@ button:focus-visible, select:focus-visible, input:focus-visible, .seg button:foc
 }
 .mp-l.hid { display: none; }
 .mp-l.hl-v, .mp-l.hl-f { display: inline; fill: var(--ink); }
+.mp-dual { display: none; }
+.maprow.dual .mp-dual { display: inline; }
+.mp-d {
+  fill: none; stroke: var(--green); stroke-width: 1.2; stroke-dasharray: 3 2.5;
+  stroke-linecap: round; pointer-events: none;
+}
+.mp-d.hl-f { stroke-width: 2.2; stroke-dasharray: none; }
+.mp-dv { fill: var(--surface); stroke: var(--green); stroke-width: 1.4; }
+.mp-dv.hl-f { fill: var(--green); }
+#m-dual[aria-pressed="true"] { background: var(--blue-w); color: var(--blue); border-color: var(--blue); }
 .map li { cursor: default; border-radius: 2px; }
 .map li.hl-v { background: color-mix(in srgb, var(--red) 12%, transparent); }
 .map li.hl-f { background: color-mix(in srgb, var(--green) 14%, transparent); }
@@ -316,9 +326,12 @@ footer .prose { max-width: 36em; }
 <figure>
   <div class="plate-head">
     <h2><span class="num">그림 넷</span>평면 지도</h2>
-    <div class="seg" role="group" aria-label="대응">
-      <button id="m-ddp" aria-pressed="true">Del Lungo 들</button>
-      <button id="m-js" aria-pressed="false">Jacquard–Schaeffer</button>
+    <div class="rail">
+      <button id="m-dual" aria-pressed="false">쌍대 겹치기</button>
+      <div class="seg" role="group" aria-label="대응">
+        <button id="m-ddp" aria-pressed="true">Del Lungo 들</button>
+        <button id="m-js" aria-pressed="false">Jacquard–Schaeffer</button>
+      </div>
     </div>
   </div>
   <div class="maprow" id="maprow"></div>
@@ -1121,9 +1134,27 @@ function drawMap(m, id) {
     const on = `v${a} v${b} f${fOf(pip(e, 1))} f${fOf(pip(e, 3))}`;
     out.push(`<text class="mp-l${few ? "" : " hid"}" data-on="${on}" x="${X(u)}" y="${Y(u)}">${String.fromCharCode(e)}</text>`);
   }
+  // 쌍대: 면 마디가 쌍대의 꼭짓점이고, 변 e의 쌍대 변은 e의 양쪽 면 마디를 e의 변
+  // 마디를 거쳐 잇는다. 세분의 변들이므로 서로 엇갈리지 않고, 원래 변과는 변 마디에서만
+  // 만난다. 바깥 면의 쌍대 꼭짓점은 무한히 먼 곳에 있다고 보아, 거기로 가는 변은 둘레의
+  // 변 마디에서 바깥쪽으로 짧게 뻗는 것으로 나타낸다.
+  const dual = [];
+  for (const e of L.edges) {
+    const u = L.eIx[e], fa = fOf(pip(e, 1)), fb = fOf(pip(e, 3));
+    const on = `f${fa} f${fb}`;
+    const leg = f => f === L.outF
+      ? `M${X(u)},${Y(u)} L${(L.x[u] * (S + 16)).toFixed(2)},${(-L.y[u] * (S + 16)).toFixed(2)}`
+      : `M${X(u)},${Y(u)} L${pt(L.fNode(f))}`;
+    dual.push(`<path class="mp-d" data-on="${on}" d="${leg(fa)} ${leg(fb)}"/>`);
+  }
+  for (let f = 0; f < L.F; f++) if (f !== L.outF) {
+    const u = L.fNode(f);
+    dual.push(`<rect class="mp-dv" data-on="f${f}" x="${(L.x[u] * S - 3).toFixed(2)}" y="${(-L.y[u] * S - 3).toFixed(2)}" width="6" height="6"/>`);
+  }
   for (let v = 0; v < L.V; v++)
     out.push(`<circle class="mp-v" data-on="v${v}" cx="${X(v)}" cy="${Y(v)}" r="3.6"/>`);
-  return `<svg class="mp" viewBox="-112 -112 224 224" role="img" aria-label="평면 지도 그림">
+  out.push(`<g class="mp-dual">${dual.join("")}</g>`);
+  return `<svg class="mp" viewBox="-124 -124 248 248" role="img" aria-label="평면 지도 그림">
     <defs><marker id="${id}" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="7" markerHeight="7"
       orient="auto"><path d="M1,1 L9,5 L1,9 Z" class="mp-arrow"/></marker></defs>
     ${out.join("")}</svg>`;
@@ -1153,14 +1184,18 @@ function drawMaps(r, kind) {
     : `켤레 넷에 Jacquard–Schaeffer 대응을 매긴 지도다. 빨간 줄이 꼭짓점 고리, 초록 줄이
        면 고리다. `) +
     `그림에서는 뿌리 변 양쪽의 두 면 가운데 변이 많은 쪽을 바깥으로 두었고, 파란 화살표가
-     뿌리 변이다. 목록의 줄이나 그림의 꼭짓점·면을 가리키면 서로 짝이 되는 것이 함께 밝아진다. ` +
+     뿌리 변이다. 목록의 줄이나 그림의 꼭짓점·면을 가리키면 서로 짝이 되는 것이 함께 밝아진다.
+     ‘쌍대 겹치기’의 초록 네모는 면마다 하나씩 둔 쌍대의 꼭짓점이고, 둘레 밖으로 뻗은 점선은
+     바깥 면의 쌍대 꼭짓점(무한히 먼 곳)으로 가는 변이다. ` +
     `<i>T</i>의 지도에서 꼭지 이름마다 아래 첨자를 하나씩 내리고 뿌리 변 <span class="rt">*</span>만은
      올리는 이름 바꾸기를 φ라 하면, ` +
     (all
       ? `φ를 <i>k</i>번 한 것이 <b>그대로 <i>T</i><sup>+…+</sup>의 지도가 된다</b>. 짝수 꼭지가 홀수 꼭지로
          가니 꼭짓점 고리가 면 고리로 바뀐다 — 넷이 번갈아 서로 <b>쌍대</b>다(꼭짓점 ${a.v}·면 ${a.f}와
          꼭짓점 ${b.v}·면 ${b.f}). 커누스가 손으로 알아채고 이 프로그램으로 확인한 등식
-         α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>이 이것이다.`
+         α<sub><i>k</i></sub>&nbsp;=&nbsp;α<sub>0</sub>ρ̂<sup><i>k</i></sup>이 이것이다.
+         ‘쌍대 겹치기’를 켜면 카드마다 초록 점선으로 쌍대가 겹쳐지는데, 그것이 바로
+         다음 켤레의 지도다.`
       : (dual.some(Boolean)
           ? `φ를 <i>k</i>번 해서 켤레의 지도가 나오는 것은 ✓가 붙은 것뿐이다.`
           : `φ를 몇 번 해도 켤레의 지도는 나오지 않는다(✗).`) +
@@ -1304,6 +1339,11 @@ function mapHover(e) {
 }
 $("maprow").addEventListener("mouseover", mapHover);
 $("maprow").addEventListener("mouseleave", mapHover);
+$("m-dual").onclick = () => {
+  const on = $("m-dual").getAttribute("aria-pressed") !== "true";
+  $("m-dual").setAttribute("aria-pressed", String(on));
+  $("maprow").classList.toggle("dual", on);
+};
 $("m-ddp").onclick = () => { MAPKIND = "ddp"; $("m-ddp").setAttribute("aria-pressed", "true"); $("m-js").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
 $("m-js").onclick = () => { MAPKIND = "js"; $("m-js").setAttribute("aria-pressed", "true"); $("m-ddp").setAttribute("aria-pressed", "false"); drawMaps(R, MAPKIND); };
 $("conjrow").onclick = e => {
