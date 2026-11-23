@@ -362,7 +362,7 @@ try { if (localStorage.getItem("gweb-theme") === "dark") document.documentElemen
 "use strict";
 
 /* ══════════ 셈하기 ══════════
-   skew-ternary-calc.w의 「새기기」와 「상태표」 장을 옮긴 것. */
+   skew-ternary-calc.gw의 「새기기」와 「상태표」 장을 옮긴 것. */
 
 const SENTINEL = 999, OFFSET = 2;
 
@@ -483,7 +483,7 @@ function skew(args) {
 }
 
 /* ══════════ 평면 지도 ══════════
-   skew-ternary-calc.w의 「quad-edge 자료 구조」부터 「Del Lungo 들의 평면 지도」까지
+   skew-ternary-calc.gw의 「quad-edge 자료 구조」부터 「Del Lungo 들의 평면 지도」까지
    네 장을 옮긴 것. 꼭지 pip(u,i)는 변 u(글자 코드, 뿌리 변은 ‘*’)의 i번 꼭지이고,
    짝수 꼭지는 꼭짓점 고리에, 홀수 꼭지는 면 고리에 든다. 상태표는 first와 second
    두 밭만 쓰므로 줄마다 Int32Array 둘로 펼쳤다. */
@@ -1093,7 +1093,7 @@ function drawMini(rr) {
    α_k = ρ̂^k α_0 ρ̂^−k를 그 자리에서 셈해 본다. 꼭지 이름을 φ = ρ̂⁻¹로 k번 바꾸면
    (아래 첨자를 4를 법으로 하나 내리되, 뿌리 변 ‘*’만은 올린다) α_0이 α_k가 되는지.
    원본은 α_0 ρ̂^k라고 적었지만 그 곱은 짝수 꼭지를 홀수 꼭지로 보내므로 지도가 될 수
-   없다. 이름 바꾸기, 곧 켤레가 맞다(.w의 「돌려 보기」장). */
+   없다. 이름 바꾸기, 곧 켤레가 맞다(.gw의 「돌려 보기」장). */
 
 const phi = p => pipEdge(p) === ROOT ? rot(p) : irot(p);
 

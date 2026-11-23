@@ -1,6 +1,6 @@
 \input kotexgweb
 \input luamplib.sty
-@i types.w
+@i types.gw
 \datethis
 
 % 그림 예순여덟 장은 skew-ternary-calc.mp 안에 fig_... 라는 이름으로 있다.
